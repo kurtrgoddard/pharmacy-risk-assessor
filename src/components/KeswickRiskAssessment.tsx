@@ -205,7 +205,7 @@ const PDFViewerDocument: React.FC<PDFViewerDocumentProps> = ({ assessmentData, f
   return (
     <PDFViewer
       width="100%"
-      height="600"
+      height={600}
       className="border border-gray-300 rounded-md shadow-sm"
     >
       <RiskAssessmentDocument assessmentData={assessmentData} />
