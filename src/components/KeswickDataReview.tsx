@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, Check, Edit, Info, AlertCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -834,4 +835,17 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <label className="block text-sm font-medium text-pharmacy-gray mb-1">Rationale</label>
                 <Textarea
                   value={formData.rationale}
-                  onChange={(e)
+                  onChange={(e) => handleInputChange("rationale", e.target.value)}
+                  disabled={!isEditing}
+                  className="w-full"
+                />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+    </div>
+  );
+};
+
+export default KeswickDataReview;
