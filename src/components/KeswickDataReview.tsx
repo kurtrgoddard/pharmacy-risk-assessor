@@ -1,6 +1,5 @@
-
-import React, { useState } from "react";
-import { AlertTriangle, Check, Edit, Info } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { AlertTriangle, Check, Edit, Info, AlertCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -8,6 +7,8 @@ import { KeswickAssessmentData } from "./KeswickRiskAssessment";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { getNioshHazardInfo, getHazardLevel, getPPERecommendations, HazardLevel } from "@/utils/nioshData";
 
 interface KeswickDataReviewProps {
   extractedData: KeswickAssessmentData;
@@ -22,6 +23,56 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<KeswickAssessmentData>(extractedData);
+  
+  // Auto-detect NIOSH hazard information on initial load and when ingredients change
+  useEffect(() => {
+    if (!isEditing) {
+      const updatedIngredients = formData.activeIngredients.map(ingredient => {
+        // Get NIOSH hazard information for this ingredient
+        const nioshInfo = getNioshHazardInfo(ingredient.name);
+        const hazardLevel = getHazardLevel(nioshInfo);
+        
+        // Update nioshStatus based on the lookup
+        const updatedIngredient = {
+          ...ingredient,
+          nioshStatus: {
+            ...ingredient.nioshStatus,
+            isOnNioshList: nioshInfo.table !== null,
+            table: nioshInfo.table || undefined,
+            hazardLevel: hazardLevel,
+            hazardType: nioshInfo.hazardType
+          }
+        };
+        
+        return updatedIngredient;
+      });
+      
+      // Update the PPE recommendations if any high-hazard ingredients are detected
+      const highestHazardLevel = updatedIngredients.reduce<HazardLevel>((highest, ingredient) => {
+        const level = ingredient.nioshStatus.hazardLevel || "Non-Hazardous";
+        if (level === "High Hazard") return "High Hazard";
+        if (level === "Moderate Hazard" && highest !== "High Hazard") return "Moderate Hazard";
+        return highest;
+      }, "Non-Hazardous");
+      
+      // Get recommended PPE based on the highest hazard level
+      const recommendedPPE = getPPERecommendations(highestHazardLevel);
+      
+      // Only auto-update PPE if there's a high or moderate hazard detected
+      if (highestHazardLevel !== "Non-Hazardous") {
+        setFormData(prev => ({
+          ...prev,
+          activeIngredients: updatedIngredients,
+          ppe: recommendedPPE
+        }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          activeIngredients: updatedIngredients
+        }));
+      }
+    }
+  }, [formData.activeIngredients.map(i => i.name).join(","), isEditing]);
   
   const handleValidateData = () => {
     // Basic validation
@@ -66,7 +117,8 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   const handleActiveIngredientChange = (index: number, field: string, value: any) => {
     const updatedIngredients = [...formData.activeIngredients];
     
-    if (field === "nioshStatus.isOnNioshList" || field === "nioshStatus.table") {
+    if (field === "nioshStatus.isOnNioshList" || field === "nioshStatus.table" || 
+        field === "nioshStatus.hazardLevel" || field === "nioshStatus.hazardType") {
       // Handle nested object
       const [parent, child] = field.split('.');
       
@@ -91,6 +143,33 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       ...prev,
       activeIngredients: updatedIngredients
     }));
+  };
+
+  // Get hazard badge styling based on hazard level
+  const getHazardBadge = (hazardLevel?: HazardLevel) => {
+    switch (hazardLevel) {
+      case "High Hazard":
+        return (
+          <Badge className="bg-red-500 text-white hover:bg-red-600">
+            <AlertTriangle className="w-3 h-3 mr-1" />
+            High Hazard
+          </Badge>
+        );
+      case "Moderate Hazard":
+        return (
+          <Badge className="bg-orange-500 text-white hover:bg-orange-600">
+            <AlertCircle className="w-3 h-3 mr-1" />
+            Moderate Hazard
+          </Badge>
+        );
+      default:
+        return (
+          <Badge className="bg-green-500 text-white hover:bg-green-600">
+            <Shield className="w-3 h-3 mr-1" />
+            Non-Hazardous
+          </Badge>
+        );
+    }
   };
 
   const physicalCharacteristicOptions = [
@@ -289,26 +368,31 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
             <div className="space-y-6">
               {formData.activeIngredients.map((ingredient, index) => (
                 <div key={index} className="p-4 border rounded-md">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium block text-pharmacy-darkBlue">API Name</label>
-                      <Input 
-                        type="text" 
-                        value={ingredient.name}
-                        disabled={!isEditing}
-                        onChange={(e) => handleActiveIngredientChange(index, 'name', e.target.value)}
-                        className="w-full"
-                      />
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium block text-pharmacy-darkBlue">API Name</label>
+                        <Input 
+                          type="text" 
+                          value={ingredient.name}
+                          disabled={!isEditing}
+                          onChange={(e) => handleActiveIngredientChange(index, 'name', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium block text-pharmacy-darkBlue">Manufacturer</label>
+                        <Input 
+                          type="text" 
+                          value={ingredient.manufacturer}
+                          disabled={!isEditing}
+                          onChange={(e) => handleActiveIngredientChange(index, 'manufacturer', e.target.value)}
+                          className="w-full"
+                        />
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium block text-pharmacy-darkBlue">Manufacturer</label>
-                      <Input 
-                        type="text" 
-                        value={ingredient.manufacturer}
-                        disabled={!isEditing}
-                        onChange={(e) => handleActiveIngredientChange(index, 'manufacturer', e.target.value)}
-                        className="w-full"
-                      />
+                    <div className="ml-4 min-w-[120px] flex items-center justify-end">
+                      {getHazardBadge(ingredient.nioshStatus.hazardLevel)}
                     </div>
                   </div>
                   
@@ -343,8 +427,20 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                             <option value="">Select Table</option>
                             <option value="Table 1">Table 1</option>
                             <option value="Table 2">Table 2</option>
-                            <option value="Table 3">Table 3</option>
                           </select>
+                        </div>
+                      )}
+                      
+                      {ingredient.nioshStatus.isOnNioshList && ingredient.nioshStatus.hazardType && (
+                        <div className="mt-2">
+                          <label className="text-sm font-medium block text-pharmacy-darkBlue">Hazard Type</label>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {ingredient.nioshStatus.hazardType.map((hazard, idx) => (
+                              <Badge key={idx} variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                                {hazard}
+                              </Badge>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -421,7 +517,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                           <p className="text-xs text-red-600">
                             This ingredient is listed on the NIOSH Hazardous Drugs List 
                             {ingredient.nioshStatus.table && ` (${ingredient.nioshStatus.table})`}.
-                            Additional precautions are required.
+                            {ingredient.nioshStatus.hazardLevel === "High Hazard" && " Enhanced safety precautions required."}
                           </p>
                         </div>
                       </div>
@@ -438,7 +534,9 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                       name: '',
                       manufacturer: '',
                       nioshStatus: {
-                        isOnNioshList: false
+                        isOnNioshList: false,
+                        hazardLevel: "Non-Hazardous",
+                        hazardType: []
                       },
                       reproductiveToxicity: false,
                       whmisHazards: false,
@@ -846,207 +944,4 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                     value={formData.ppe.gloves}
                     disabled={!isEditing}
                     onChange={(e) => handlePPEChange('gloves', e.target.value)}
-                    className="w-full p-2 border rounded-md text-sm"
-                  >
-                    <option value="Regular">Regular</option>
-                    <option value="Chemotherapy">Chemotherapy</option>
-                    <option value="Double Gloves">Double Gloves</option>
-                  </select>
-                </div>
-                
-                <div className="space-y-2">
-                  <label className="text-sm font-medium block text-pharmacy-darkBlue">Gown</label>
-                  <select
-                    value={formData.ppe.gown}
-                    disabled={!isEditing}
-                    onChange={(e) => handlePPEChange('gown', e.target.value)}
-                    className="w-full p-2 border rounded-md text-sm"
-                  >
-                    <option value="Designated Compounding Jacket">Designated Compounding Jacket</option>
-                    <option value="Disposable Hazardous Gown">Disposable Hazardous Gown</option>
-                  </select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium block text-pharmacy-darkBlue">Mask</label>
-                  <select
-                    value={formData.ppe.mask}
-                    disabled={!isEditing}
-                    onChange={(e) => handlePPEChange('mask', e.target.value)}
-                    className="w-full p-2 border rounded-md text-sm"
-                  >
-                    <option value="Surgical mask">Surgical mask</option>
-                    <option value="N95">N95</option>
-                    <option value="Other">Other</option>
-                  </select>
-                </div>
-                
-                <div className="flex items-center space-x-2 h-full pt-6">
-                  <Checkbox 
-                    id="eye-protection"
-                    checked={formData.ppe.eyeProtection}
-                    disabled={!isEditing}
-                    onCheckedChange={(checked) => handlePPEChange('eyeProtection', !!checked)}
-                  />
-                  <label 
-                    htmlFor="eye-protection"
-                    className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
-                  >
-                    Eye Protection Required
-                  </label>
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium block text-pharmacy-darkBlue mb-2">Other PPE</label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {otherPPEOptions.map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <Checkbox 
-                        id={`ppe-${option}`}
-                        checked={formData.ppe.otherPPE.includes(option)}
-                        disabled={!isEditing}
-                        onCheckedChange={(checked) => 
-                          handleCheckboxListChange('ppe.otherPPE', option, !!checked)
-                        }
-                      />
-                      <label 
-                        htmlFor={`ppe-${option}`}
-                        className="text-sm text-pharmacy-darkBlue cursor-pointer"
-                      >
-                        {option}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-        
-        <AccordionItem value="safety-equipment">
-          <AccordionTrigger className="text-md font-medium text-pharmacy-darkBlue">
-            Safety Equipment Required
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="eye-wash"
-                  checked={formData.safetyEquipment.eyeWashStation}
-                  disabled={!isEditing}
-                  onCheckedChange={(checked) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      safetyEquipment: {
-                        ...prev.safetyEquipment,
-                        eyeWashStation: !!checked
-                      }
-                    }));
-                  }}
-                />
-                <label 
-                  htmlFor="eye-wash"
-                  className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
-                >
-                  Eye wash station
-                </label>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Checkbox 
-                  id="safety-shower"
-                  checked={formData.safetyEquipment.safetyShower}
-                  disabled={!isEditing}
-                  onCheckedChange={(checked) => {
-                    setFormData(prev => ({
-                      ...prev,
-                      safetyEquipment: {
-                        ...prev.safetyEquipment,
-                        safetyShower: !!checked
-                      }
-                    }));
-                  }}
-                />
-                <label 
-                  htmlFor="safety-shower"
-                  className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
-                >
-                  Safety shower
-                </label>
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-        
-        <AccordionItem value="risk-level">
-          <AccordionTrigger className="text-md font-medium text-pharmacy-darkBlue">
-            Risk Level & Rationale
-          </AccordionTrigger>
-          <AccordionContent>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium block text-pharmacy-darkBlue">Risk Level Assigned</label>
-                <select
-                  value={formData.riskLevel}
-                  disabled={!isEditing}
-                  onChange={(e) => handleInputChange('riskLevel', e.target.value)}
-                  className="w-full p-2 border rounded-md text-sm"
-                >
-                  <option value="Level A">Level A</option>
-                  <option value="Level B">Level B</option>
-                  <option value="Level C">Level C</option>
-                </select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium block text-pharmacy-darkBlue">
-                  Rationale for Risk Mitigation Measures
-                </label>
-                <Textarea 
-                  value={formData.rationale}
-                  disabled={!isEditing}
-                  onChange={(e) => handleInputChange('rationale', e.target.value)}
-                  className="w-full min-h-[100px]"
-                  placeholder="Briefly justify based on hazards, quantities, concentrations, PPE, and compounding frequency."
-                />
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-      
-      <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
-        <div className="flex items-start">
-          <Info className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
-          <div>
-            <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Compliance Information</h4>
-            <p className="text-xs text-pharmacy-gray">
-              This assessment follows the NAPRA Model Standards for Pharmacy Compounding of Non-sterile Preparations and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
-              Please ensure all information is accurate before generating the final document.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      {formData.activeIngredients.some(ing => ing.nioshStatus.isOnNioshList) && (
-        <div className="mt-4 bg-red-50 p-4 rounded-lg border border-red-100">
-          <div className="flex items-start">
-            <AlertTriangle className="w-5 h-5 text-red-500 mr-2 mt-0.5" />
-            <div>
-              <h4 className="text-sm font-medium text-red-700 mb-1">Hazardous Ingredients Detected</h4>
-              <p className="text-xs text-red-600">
-                One or more active ingredients are classified as hazardous according to NIOSH. 
-                Ensure appropriate safety measures are selected for this compound.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default KeswickDataReview;
+                    className="w

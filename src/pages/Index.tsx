@@ -27,7 +27,9 @@ const mockProcessDocument = async (file: File): Promise<{
             name: "Ketoprofen", 
             manufacturer: "PCCA",
             nioshStatus: {
-              isOnNioshList: false
+              isOnNioshList: false,
+              hazardLevel: "Non-Hazardous",
+              hazardType: []
             },
             reproductiveToxicity: false,
             whmisHazards: true,
@@ -39,7 +41,9 @@ const mockProcessDocument = async (file: File): Promise<{
             manufacturer: "Medisca",
             nioshStatus: {
               isOnNioshList: true,
-              table: "Table 2"
+              table: "Table 1",
+              hazardLevel: "High Hazard",
+              hazardType: ["Reproductive toxicity", "Developmental hazard"]
             },
             reproductiveToxicity: true,
             whmisHazards: true,
@@ -84,7 +88,7 @@ const mockProcessDocument = async (file: File): Promise<{
           safetyShower: false
         },
         riskLevel: "Level B",
-        rationale: "Contains estradiol which is on NIOSH Table 2 as a hazardous drug with reproductive risks. Requires additional precautions including chemotherapy gloves, gown, and ventilation."
+        rationale: "Contains estradiol which is on NIOSH Table 1 as a hazardous drug with reproductive risks. Requires additional precautions including chemotherapy gloves, gown, and ventilation."
       };
       
       resolve({

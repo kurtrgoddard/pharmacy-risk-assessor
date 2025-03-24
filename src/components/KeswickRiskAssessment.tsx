@@ -1,31 +1,125 @@
-
 import React from "react";
-import { ArrowLeft, Download, Printer } from "lucide-react";
+import { Document, Page, Text, View, StyleSheet, PDFViewer, Font, Image } from '@react-pdf/renderer';
 import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { toast } from "sonner";
 
-interface KeswickRiskAssessmentProps {
-  assessmentData: KeswickAssessmentData;
-  fileName: string;
-  onStartOver: () => void;
+// Define document styles
+const styles = StyleSheet.create({
+  page: {
+    fontFamily: 'Open Sans',
+    fontSize: 12,
+    paddingTop: 35,
+    paddingBottom: 65,
+    paddingHorizontal: 35,
+  },
+  section: {
+    marginBottom: 10,
+  },
+  heading: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#2C3E50',
+  },
+  subHeading: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 12,
+    marginBottom: 6,
+    color: '#34495e',
+  },
+  paragraph: {
+    fontSize: 12,
+    lineHeight: 1.5,
+    color: '#546e7a',
+  },
+  table: {
+    display: 'table',
+    width: 'auto',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderRightWidth: 0,
+    borderBottomWidth: 0
+  },
+  tableRow: {
+    margin: 'auto',
+    flexDirection: 'row'
+  },
+  tableColHeader: {
+    width: '25%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0
+  },
+  tableCol: {
+    width: '25%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderLeftWidth: 0,
+    borderTopWidth: 0
+  },
+  tableCellHeader: {
+    margin: 4,
+    fontSize: 12,
+    fontWeight: 'bold'
+  },
+  tableCell: {
+    margin: 4,
+    fontSize: 10
+  },
+  logo: {
+    width: 80,
+    height: 24,
+    marginBottom: 10,
+  },
+  footer: {
+    position: 'absolute',
+    fontSize: 10,
+    bottom: 30,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    color: 'grey',
+  },
+  list: {
+    marginBottom: 10,
+  },
+  listItem: {
+    fontSize: 12,
+    marginVertical: 2,
+    color: '#546e7a',
+  },
+});
+
+// Register font (make sure the font file is accessible)
+Font.register({
+  family: 'Open Sans',
+  src: 'https://fonts.gstatic.com/s/opensans/v18/mem8YaGs126MiZpBA-UFVZ0bf8pkAp6a.ttf' // Replace with the actual path to your font file
+});
+
+export interface ActiveIngredient {
+  name: string;
+  manufacturer: string;
+  nioshStatus: {
+    isOnNioshList: boolean;
+    table?: string;
+    hazardLevel?: "High Hazard" | "Moderate Hazard" | "Non-Hazardous";
+    hazardType?: string[];
+  };
+  reproductiveToxicity: boolean;
+  whmisHazards: boolean;
+  sdsDescription: string;
+  monographWarnings: string;
 }
 
 export interface KeswickAssessmentData {
   compoundName: string;
   din: string;
-  activeIngredients: {
-    name: string;
-    manufacturer: string;
-    nioshStatus: {
-      isOnNioshList: boolean;
-      table?: string;
-    };
-    reproductiveToxicity: boolean;
-    whmisHazards: boolean;
-    sdsDescription: string;
-    monographWarnings: string;
-  }[];
+  activeIngredients: ActiveIngredient[];
   preparationDetails: {
-    frequency: "Daily" | "Weekly" | "Monthly" | "Less";
+    frequency: string;
     quantity: string;
     concentrationRisk: boolean;
   };
@@ -50,9 +144,9 @@ export interface KeswickAssessmentData {
   };
   exposureRisks: string[];
   ppe: {
-    gloves: "Regular" | "Chemotherapy" | "Double Gloves";
-    gown: "Designated Compounding Jacket" | "Disposable Hazardous Gown";
-    mask: "Surgical mask" | "N95" | "Other";
+    gloves: string;
+    gown: string;
+    mask: string;
     eyeProtection: boolean;
     otherPPE: string[];
   };
@@ -60,8 +154,14 @@ export interface KeswickAssessmentData {
     eyeWashStation: boolean;
     safetyShower: boolean;
   };
-  riskLevel: "Level A" | "Level B" | "Level C";
+  riskLevel: string;
   rationale: string;
+}
+
+interface KeswickRiskAssessmentProps {
+  assessmentData: KeswickAssessmentData;
+  fileName: string;
+  onStartOver: () => void;
 }
 
 const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
@@ -69,307 +169,18 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
   fileName,
   onStartOver,
 }) => {
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleDownload = () => {
-    // In a real implementation, we would generate a PDF and download it
-    // For now, we'll just show a toast message
-    console.log("Downloading Risk Assessment");
-  };
-
   return (
     <div className="w-full max-w-5xl mx-auto px-4 assessment-appear">
       <div className="mb-8 text-center">
         <h2 className="text-2xl font-semibold text-pharmacy-darkBlue mb-2">
-          Risk Assessment Generated
+          Risk Assessment Document
         </h2>
         <p className="text-pharmacy-gray">
-          Your compound risk assessment has been successfully generated
+          Here is your generated risk assessment document.
         </p>
       </div>
-
-      <div className="glass-card rounded-xl overflow-hidden mb-8">
-        <div className="flex items-center justify-between p-4 bg-pharmacy-neutral border-b">
-          <div className="flex items-center">
-            <h3 className="font-medium text-pharmacy-darkBlue">
-              Keswick Compounding Pharmacy – Non-sterile Compounding Risk Assessment
-            </h3>
-          </div>
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handlePrint}
-              className="flex items-center text-xs"
-            >
-              <Printer className="w-4 h-4 mr-1" />
-              Print
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              onClick={handleDownload}
-              className="flex items-center text-xs bg-pharmacy-blue hover:bg-pharmacy-darkBlue"
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
-          </div>
-        </div>
-
-        <div className="p-6 bg-white print:p-8">
-          <div className="border border-gray-300 rounded-lg p-6 print:border-black">
-            <h1 className="text-xl font-bold text-center mb-6 print:text-black">
-              Keswick Compounding Pharmacy – Non-sterile Compounding Risk Assessment
-            </h1>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <p className="font-semibold print:text-black">Compound Name:</p>
-                <p className="border-b border-gray-300 pb-1 print:border-black print:text-black">
-                  {assessmentData.compoundName}
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold print:text-black">DIN (Drug Identification Number):</p>
-                <p className="border-b border-gray-300 pb-1 print:border-black print:text-black">
-                  {assessmentData.din || "N/A"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Active Pharmaceutical Ingredients (APIs):</h2>
-              {assessmentData.activeIngredients.map((ingredient, index) => (
-                <div key={index} className="mb-4 border-b border-gray-200 pb-4 print:border-black">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <p className="font-semibold print:text-black">API Name:</p>
-                      <p className="print:text-black">{ingredient.name}</p>
-                    </div>
-                    <div>
-                      <p className="font-semibold print:text-black">Manufacturer:</p>
-                      <p className="print:text-black">{ingredient.manufacturer || "Not specified"}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                    <div>
-                      <p className="font-semibold print:text-black">
-                        On NIOSH Antineoplastic Drug List:
-                      </p>
-                      <p className="print:text-black">
-                        {ingredient.nioshStatus.isOnNioshList ? "Yes" : "No"}
-                        {ingredient.nioshStatus.isOnNioshList && ingredient.nioshStatus.table && 
-                          ` (${ingredient.nioshStatus.table})`}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="font-semibold print:text-black">Toxic to reproduction:</p>
-                      <p className="print:text-black">{ingredient.reproductiveToxicity ? "Yes" : "No"}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <p className="font-semibold print:text-black">WHMIS Health Hazards:</p>
-                    <p className="print:text-black">{ingredient.whmisHazards ? "Yes" : "No"}</p>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <p className="font-semibold print:text-black">SDS Section 2 Description (Hazards):</p>
-                    <p className="print:text-black">{ingredient.sdsDescription || "Not provided"}</p>
-                  </div>
-                  
-                  <div className="mt-2">
-                    <p className="font-semibold print:text-black">Product Monograph Contraindications/Warnings:</p>
-                    <p className="print:text-black">{ingredient.monographWarnings || "Not provided"}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Preparation Details:</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <p className="font-semibold print:text-black">Frequency of Preparation:</p>
-                  <p className="print:text-black">{assessmentData.preparationDetails.frequency}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Quantity Prepared (Average):</p>
-                  <p className="print:text-black">{assessmentData.preparationDetails.quantity}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Concentration Health Risk:</p>
-                  <p className="print:text-black">{assessmentData.preparationDetails.concentrationRisk ? "Yes" : "No"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Physical Characteristics:</h2>
-              <div className="flex flex-wrap gap-2">
-                {assessmentData.physicalCharacteristics.map((characteristic, index) => (
-                  <span key={index} className="px-2 py-1 bg-gray-100 rounded-md text-sm print:bg-white print:border print:border-black print:text-black">
-                    {characteristic}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Special Compounding Equipment Required:</h2>
-              <div className="flex flex-wrap gap-2">
-                {assessmentData.equipmentRequired.length > 0 ? (
-                  assessmentData.equipmentRequired.map((equipment, index) => (
-                    <span key={index} className="px-2 py-1 bg-gray-100 rounded-md text-sm print:bg-white print:border print:border-black print:text-black">
-                      {equipment}
-                    </span>
-                  ))
-                ) : (
-                  <span className="print:text-black">None required</span>
-                )}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Additional Safety Checks:</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="font-semibold print:text-black">Special education/competencies required:</p>
-                  <p className="print:text-black">
-                    {assessmentData.safetyChecks.specialEducation.required ? 
-                      `Yes: ${assessmentData.safetyChecks.specialEducation.description || ""}` : 
-                      "No"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Visual verification required:</p>
-                  <p className="print:text-black">{assessmentData.safetyChecks.verificationRequired ? "Yes" : "No"}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Appropriate facilities/equipment available:</p>
-                  <p className="print:text-black">{assessmentData.safetyChecks.equipmentAvailable ? "Yes" : "No"}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Ventilation required:</p>
-                  <p className="print:text-black">{assessmentData.safetyChecks.ventilationRequired ? "Yes" : "No"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Workflow Considerations:</h2>
-              <div className="space-y-2">
-                <div>
-                  <p className="font-semibold print:text-black">Workflow uninterrupted:</p>
-                  <p className="print:text-black">
-                    {assessmentData.workflowConsiderations.uninterruptedWorkflow.status ? 
-                      "Yes" : 
-                      `No - Measures: ${assessmentData.workflowConsiderations.uninterruptedWorkflow.measures || "Not specified"}`}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Risk of microbial contamination:</p>
-                  <p className="print:text-black">
-                    {assessmentData.workflowConsiderations.microbialContaminationRisk ? "Yes" : "No"}
-                  </p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Risk of cross-contamination:</p>
-                  <p className="print:text-black">
-                    {assessmentData.workflowConsiderations.crossContaminationRisk ? "Yes" : "No"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Exposure Risks:</h2>
-              <div className="flex flex-wrap gap-2">
-                {assessmentData.exposureRisks.map((risk, index) => (
-                  <span key={index} className="px-2 py-1 bg-gray-100 rounded-md text-sm print:bg-white print:border print:border-black print:text-black">
-                    {risk}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Personal Protective Equipment (PPE):</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="font-semibold print:text-black">Gloves:</p>
-                  <p className="print:text-black">{assessmentData.ppe.gloves}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Gown:</p>
-                  <p className="print:text-black">{assessmentData.ppe.gown}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Mask:</p>
-                  <p className="print:text-black">{assessmentData.ppe.mask}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Eye Protection:</p>
-                  <p className="print:text-black">{assessmentData.ppe.eyeProtection ? "Yes" : "No"}</p>
-                </div>
-              </div>
-              {assessmentData.ppe.otherPPE.length > 0 && (
-                <div className="mt-2">
-                  <p className="font-semibold print:text-black">Other PPE:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {assessmentData.ppe.otherPPE.map((item, index) => (
-                      <span key={index} className="px-2 py-1 bg-gray-100 rounded-md text-sm print:bg-white print:border print:border-black print:text-black">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Safety Equipment Required:</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="font-semibold print:text-black">Eye wash station:</p>
-                  <p className="print:text-black">{assessmentData.safetyEquipment.eyeWashStation ? "Yes" : "No"}</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Safety shower:</p>
-                  <p className="print:text-black">{assessmentData.safetyEquipment.safetyShower ? "Yes" : "No"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mb-6">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Risk Level Assigned:</h2>
-              <p className="font-bold text-lg print:text-black">{assessmentData.riskLevel}</p>
-            </div>
-
-            <div className="mb-4">
-              <h2 className="font-semibold mb-2 text-lg print:text-black">Rationale for Risk Mitigation Measures:</h2>
-              <p className="print:text-black">{assessmentData.rationale}</p>
-            </div>
-
-            <div className="mt-8 border-t pt-4 print:border-black">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <p className="font-semibold print:text-black">Assessment completed by:</p>
-                  <p className="border-b border-gray-300 mt-6 print:border-black">&nbsp;</p>
-                </div>
-                <div>
-                  <p className="font-semibold print:text-black">Date:</p>
-                  <p className="border-b border-gray-300 mt-6 print:border-black">&nbsp;</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      
+      <PDFViewerDocument assessmentData={assessmentData} fileName={fileName} />
 
       <div className="mt-8 flex justify-center">
         <Button
@@ -378,10 +189,206 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
           className="flex items-center text-pharmacy-darkBlue hover:text-pharmacy-blue transition-colors duration-200"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Process Another Document
+          Start Over
         </Button>
       </div>
     </div>
+  );
+};
+
+interface PDFViewerDocumentProps {
+  assessmentData: KeswickAssessmentData;
+  fileName: string;
+}
+
+const PDFViewerDocument: React.FC<PDFViewerDocumentProps> = ({ assessmentData, fileName }) => {
+  return (
+    <PDFViewer
+      width="100%"
+      height="600"
+      className="border border-gray-300 rounded-md shadow-sm"
+    >
+      <RiskAssessmentDocument assessmentData={assessmentData} />
+    </PDFViewer>
+  );
+};
+
+interface RiskAssessmentDocumentProps {
+  assessmentData: KeswickAssessmentData;
+}
+
+const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessmentData }) => {
+  return (
+    <Document>
+      <Page style={styles.page}>
+        <View style={styles.section}>
+          {/* Replace with actual logo */}
+          {/* <Image style={styles.logo} src="/images/keswick_logo.png" /> */}
+          <Text style={styles.heading}>Risk Assessment for {assessmentData.compoundName}</Text>
+          <Text style={styles.paragraph}>
+            This document outlines the risk assessment for the compounding of {assessmentData.compoundName},
+            in accordance with NAPRA and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Compound Details</Text>
+          <View style={styles.table}>
+            <View style={styles.tableRow}>
+              <View style={styles.tableColHeader}>
+                <Text style={styles.tableCellHeader}>Detail</Text>
+              </View>
+              <View style={styles.tableColHeader}>
+                <Text style={styles.tableCellHeader}>Information</Text>
+              </View>
+            </View>
+            <View style={styles.tableRow}>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>Compound Name</Text>
+              </View>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>{assessmentData.compoundName}</Text>
+              </View>
+            </View>
+            <View style={styles.tableRow}>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>DIN</Text>
+              </View>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>{assessmentData.din}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Active Ingredients</Text>
+          {assessmentData.activeIngredients.map((ingredient, index) => (
+            <View key={index} style={styles.list}>
+              <Text style={styles.listItem}>
+                {ingredient.name} (Manufacturer: {ingredient.manufacturer})
+              </Text>
+              {ingredient.nioshStatus.isOnNioshList && (
+                <View style={{ marginLeft: 10 }}>
+                  <Text style={styles.listItem}>
+                    NIOSH Listed: Yes (Table {ingredient.nioshStatus.table})
+                  </Text>
+                  {ingredient.nioshStatus.hazardType && ingredient.nioshStatus.hazardType.length > 0 && (
+                    <Text style={styles.listItem}>
+                      Hazards: {ingredient.nioshStatus.hazardType.join(', ')}
+                    </Text>
+                  )}
+                </View>
+              )}
+              {ingredient.reproductiveToxicity && (
+                <Text style={styles.listItem}>
+                  Toxic to Reproduction: Yes
+                </Text>
+              )}
+              {ingredient.whmisHazards && (
+                <Text style={styles.listItem}>
+                  WHMIS Health Hazards: Yes
+                </Text>
+              )}
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Preparation Details</Text>
+          <Text style={styles.paragraph}>
+            Frequency of Preparation: {assessmentData.preparationDetails.frequency}
+          </Text>
+          <Text style={styles.paragraph}>
+            Quantity Prepared (Average): {assessmentData.preparationDetails.quantity}
+          </Text>
+          <Text style={styles.paragraph}>
+            Concentration presents health risk: {assessmentData.preparationDetails.concentrationRisk ? 'Yes' : 'No'}
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Physical Characteristics</Text>
+          {assessmentData.physicalCharacteristics.map((characteristic, index) => (
+            <Text key={index} style={styles.listItem}>- {characteristic}</Text>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Equipment Required</Text>
+          {assessmentData.equipmentRequired.map((equipment, index) => (
+            <Text key={index} style={styles.listItem}>- {equipment}</Text>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Safety Checks</Text>
+          <Text style={styles.paragraph}>
+            Special education or competencies required: {assessmentData.safetyChecks.specialEducation.required ? 'Yes' : 'No'}
+            {assessmentData.safetyChecks.specialEducation.required &&
+              ` - ${assessmentData.safetyChecks.specialEducation.description}`
+            }
+          </Text>
+          <Text style={styles.paragraph}>
+            Visual verification required: {assessmentData.safetyChecks.verificationRequired ? 'Yes' : 'No'}
+          </Text>
+          <Text style={styles.paragraph}>
+            Appropriate facilities/equipment available: {assessmentData.safetyChecks.equipmentAvailable ? 'Yes' : 'No'}
+          </Text>
+          <Text style={styles.paragraph}>
+            Ventilation required: {assessmentData.safetyChecks.ventilationRequired ? 'Yes' : 'No'}
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Workflow Considerations</Text>
+          <Text style={styles.paragraph}>
+            Workflow uninterrupted: {assessmentData.workflowConsiderations.uninterruptedWorkflow.status ? 'Yes' : 'No'}
+            {!assessmentData.workflowConsiderations.uninterruptedWorkflow.status &&
+              ` - Measures: ${assessmentData.workflowConsiderations.uninterruptedWorkflow.measures}`
+            }
+          </Text>
+          <Text style={styles.paragraph}>
+            Risk of microbial contamination: {assessmentData.workflowConsiderations.microbialContaminationRisk ? 'Yes' : 'No'}
+          </Text>
+          <Text style={styles.paragraph}>
+            Risk of cross-contamination: {assessmentData.workflowConsiderations.crossContaminationRisk ? 'Yes' : 'No'}
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Exposure Risks</Text>
+          {assessmentData.exposureRisks.map((risk, index) => (
+            <Text key={index} style={styles.listItem}>- {risk}</Text>
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Personal Protective Equipment (PPE)</Text>
+          <Text style={styles.paragraph}>Gloves: {assessmentData.ppe.gloves}</Text>
+          <Text style={styles.paragraph}>Gown: {assessmentData.ppe.gown}</Text>
+          <Text style={styles.paragraph}>Mask: {assessmentData.ppe.mask}</Text>
+          <Text style={styles.paragraph}>Eye Protection Required: {assessmentData.ppe.eyeProtection ? 'Yes' : 'No'}</Text>
+          <Text style={styles.paragraph}>Other PPE: {assessmentData.ppe.otherPPE.join(', ')}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Safety Equipment</Text>
+          <Text style={styles.paragraph}>Eye wash station: {assessmentData.safetyEquipment.eyeWashStation ? 'Yes' : 'No'}</Text>
+          <Text style={styles.paragraph}>Safety shower: {assessmentData.safetyEquipment.safetyShower ? 'Yes' : 'No'}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.subHeading}>Risk Level</Text>
+          <Text style={styles.paragraph}>Risk Level Assigned: {assessmentData.riskLevel}</Text>
+          <Text style={styles.paragraph}>Rationale: {assessmentData.rationale}</Text>
+        </View>
+
+        <Text style={styles.footer}>
+          This document is intended for internal use only and should not be distributed without permission.
+        </Text>
+      </Page>
+    </Document>
   );
 };
 
