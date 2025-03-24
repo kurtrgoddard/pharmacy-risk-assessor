@@ -14,11 +14,12 @@ const PDFViewerWrapper: React.FC<PDFViewerWrapperProps> = ({ assessmentData, fil
     <PDFViewer
       width="100%"
       height={600}
-      style={{ 
+      style={{
         border: '1px solid #e2e8f0',
         borderRadius: '0.375rem',
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
+        // Remove boxShadow as it's not recognized by the Style type
       }}
+      className="shadow-sm"
     >
       <RiskAssessmentDocument assessmentData={assessmentData} />
     </PDFViewer>
