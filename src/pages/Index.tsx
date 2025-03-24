@@ -1,51 +1,95 @@
 
 import React, { useState, useEffect } from 'react';
-import { FileUploader, LoadingIndicator, DocumentPreview } from '@/components';
-import ExtractedDataReview, { ExtractedFormulaData } from '@/components/ExtractedDataReview';
+import { FileUploader, LoadingIndicator } from '@/components';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft, Info } from "lucide-react";
+import KeswickDataReview from '@/components/KeswickDataReview';
+import KeswickRiskAssessment, { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
 
 // This would be replaced with actual PDF processing in production
 const mockProcessDocument = async (file: File): Promise<{
-  riskAssessmentData: string;
-  masterFormulaData: string;
-  extractedData: ExtractedFormulaData;
+  assessmentData: KeswickAssessmentData;
+  pdfData: string;
 }> => {
   // Simulate network delay and processing
   return new Promise((resolve) => {
     setTimeout(() => {
-      // Mock data URLs
-      // In a real implementation, this would involve API calls to process the document
+      // Mock data URL
       const fileURL = URL.createObjectURL(file);
       
-      // Mock extracted data
-      const extractedData: ExtractedFormulaData = {
-        compoundName: "Sample Compound",
+      // Mock assessment data
+      const assessmentData: KeswickAssessmentData = {
+        compoundName: "Sample Ketoprofen 10% in PLO Gel",
+        din: "N/A (Compounded product)",
         activeIngredients: [
-          { name: "Ketoprofen", concentration: "10%", nioshHazard: "Non-hazardous" },
-          { name: "Estradiol", concentration: "0.01%", nioshHazard: "Hazardous - Reproductive risk" }
+          { 
+            name: "Ketoprofen", 
+            manufacturer: "PCCA",
+            nioshStatus: {
+              isOnNioshList: false
+            },
+            reproductiveToxicity: false,
+            whmisHazards: true,
+            sdsDescription: "Causes serious eye irritation. May cause respiratory irritation.",
+            monographWarnings: "Contraindicated in patients with hypersensitivity to ketoprofen or other NSAIDs."
+          },
+          { 
+            name: "Estradiol", 
+            manufacturer: "Medisca",
+            nioshStatus: {
+              isOnNioshList: true,
+              table: "Table 2"
+            },
+            reproductiveToxicity: true,
+            whmisHazards: true,
+            sdsDescription: "May damage fertility or the unborn child. May cause harm to breast-fed children.",
+            monographWarnings: "Estrogens with or without progestins should not be used for the prevention of cardiovascular disease or dementia."
+          }
         ],
-        inactiveIngredients: [
-          { name: "Pluronic Lecithin Organogel (PLO)", amount: "qs 100g" }
-        ],
-        beyondUseDate: "14 days at room temperature",
-        storageInstructions: "Store at room temperature in a tightly closed container. Protect from light.",
-        containerType: "Airless pump dispenser",
-        compoundingProcedure: [
-          "1. Calculate the required quantity of each ingredient.",
-          "2. Weigh/measure each ingredient accurately using a calibrated scale.",
-          "3. Mix the active ingredients with a small amount of the base.",
-          "4. Incorporate the remaining base and mix until uniform."
-        ],
-        specialInstructions: "Use chemical protective gloves when handling estradiol."
+        preparationDetails: {
+          frequency: "Weekly",
+          quantity: "100g",
+          concentrationRisk: false
+        },
+        physicalCharacteristics: ["Semi-Solid", "Cream/Ointment"],
+        equipmentRequired: ["Balance", "Ointment Mill"],
+        safetyChecks: {
+          specialEducation: {
+            required: true,
+            description: "Training on handling hormonal compounds required"
+          },
+          verificationRequired: true,
+          equipmentAvailable: true,
+          ventilationRequired: true
+        },
+        workflowConsiderations: {
+          uninterruptedWorkflow: {
+            status: false,
+            measures: "Compound during slow periods, use 'Do Not Disturb' signage"
+          },
+          microbialContaminationRisk: true,
+          crossContaminationRisk: true
+        },
+        exposureRisks: ["Skin", "Eye"],
+        ppe: {
+          gloves: "Chemotherapy",
+          gown: "Disposable Hazardous Gown",
+          mask: "N95",
+          eyeProtection: true,
+          otherPPE: ["Head covers"]
+        },
+        safetyEquipment: {
+          eyeWashStation: true,
+          safetyShower: false
+        },
+        riskLevel: "Level B",
+        rationale: "Contains estradiol which is on NIOSH Table 2 as a hazardous drug with reproductive risks. Requires additional precautions including chemotherapy gloves, gown, and ventilation."
       };
       
       resolve({
-        riskAssessmentData: fileURL,
-        masterFormulaData: fileURL,
-        extractedData
+        assessmentData,
+        pdfData: fileURL
       });
     }, 3000);
   });
@@ -54,10 +98,9 @@ const mockProcessDocument = async (file: File): Promise<{
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [documentsGenerated, setDocumentsGenerated] = useState(false);
-  const [riskAssessmentPDF, setRiskAssessmentPDF] = useState<string | null>(null);
-  const [masterFormulaPDF, setMasterFormulaPDF] = useState<string | null>(null);
-  const [extractedData, setExtractedData] = useState<ExtractedFormulaData | null>(null);
+  const [assessmentGenerated, setAssessmentGenerated] = useState(false);
+  const [assessmentPDF, setAssessmentPDF] = useState<string | null>(null);
+  const [extractedData, setExtractedData] = useState<KeswickAssessmentData | null>(null);
   const [loadingMessage, setLoadingMessage] = useState("Processing your document...");
   const [processingSteps, setProcessingSteps] = useState<string[]>([
     "Analyzing document content",
@@ -65,11 +108,9 @@ const Index = () => {
     "Identifying NIOSH hazards",
     "Assessing safety parameters",
     "Generating risk assessment",
-    "Creating master formula",
     "Finalizing documents",
   ]);
   const [currentStep, setCurrentStep] = useState(0);
-  const [activeTab, setActiveTab] = useState("risk");
   const [isDataValidated, setIsDataValidated] = useState(false);
 
   // Simulates different loading messages during processing
@@ -93,9 +134,8 @@ const Index = () => {
 
   const handleFileUploaded = (uploadedFile: File) => {
     setFile(uploadedFile);
-    setRiskAssessmentPDF(null);
-    setMasterFormulaPDF(null);
-    setDocumentsGenerated(false);
+    setAssessmentPDF(null);
+    setAssessmentGenerated(false);
     setExtractedData(null);
     setIsDataValidated(false);
   };
@@ -112,11 +152,10 @@ const Index = () => {
       setLoadingMessage(processingSteps[0]);
       
       // In a real implementation, this would call an API to process the PDF
-      const { riskAssessmentData, masterFormulaData, extractedData } = await mockProcessDocument(file);
+      const { assessmentData, pdfData } = await mockProcessDocument(file);
       
-      setRiskAssessmentPDF(riskAssessmentData);
-      setMasterFormulaPDF(masterFormulaData);
-      setExtractedData(extractedData);
+      setAssessmentPDF(pdfData);
+      setExtractedData(assessmentData);
       
       toast.success("Document processed successfully");
     } catch (error) {
@@ -129,9 +168,8 @@ const Index = () => {
 
   const handleStartOver = () => {
     setFile(null);
-    setRiskAssessmentPDF(null);
-    setMasterFormulaPDF(null);
-    setDocumentsGenerated(false);
+    setAssessmentPDF(null);
+    setAssessmentGenerated(false);
     setExtractedData(null);
     setIsProcessing(false);
     setIsDataValidated(false);
@@ -141,18 +179,18 @@ const Index = () => {
     setIsDataValidated(true);
   };
   
-  const handleDataUpdated = (updatedData: ExtractedFormulaData) => {
+  const handleDataUpdated = (updatedData: KeswickAssessmentData) => {
     setExtractedData(updatedData);
   };
   
-  const handleFinalizeDocuments = () => {
+  const handleFinalizeAssessment = () => {
     if (!isDataValidated) {
-      toast.error("Please validate the data before generating final documents");
+      toast.error("Please validate the data before generating the final assessment");
       return;
     }
     
-    setDocumentsGenerated(true);
-    toast.success("Final documents generated successfully");
+    setAssessmentGenerated(true);
+    toast.success("Final risk assessment generated successfully");
   };
 
   return (
@@ -165,7 +203,7 @@ const Index = () => {
                 Compound Formula Document Generator
               </h1>
               <p className="text-pharmacy-gray max-w-2xl mx-auto">
-                Upload technical PDF documents about pharmaceutical compounds and automatically generate NAPRA-compliant risk assessments and master formulas.
+                Upload technical PDF documents about pharmaceutical compounds and automatically generate NAPRA-compliant risk assessments.
               </p>
             </div>
 
@@ -181,7 +219,7 @@ const Index = () => {
                     disabled={!file}
                     className="bg-pharmacy-blue hover:bg-pharmacy-darkBlue transition-colors duration-200 px-8"
                   >
-                    Generate Documents
+                    Generate Risk Assessment
                   </Button>
                 </div>
                 
@@ -206,15 +244,15 @@ const Index = () => {
                       <div className="w-8 h-8 bg-pharmacy-blue/10 rounded-full flex items-center justify-center mx-auto mb-3">
                         <span className="text-pharmacy-blue font-medium">3</span>
                       </div>
-                      <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">Get Documents</h4>
-                      <p className="text-xs text-pharmacy-gray">Download both NAPRA-compliant risk assessment and master formula PDFs</p>
+                      <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">Get Risk Assessment</h4>
+                      <p className="text-xs text-pharmacy-gray">Download your NAPRA-compliant risk assessment document</p>
                     </div>
                   </div>
                 </div>
               </>
             )}
           </div>
-        ) : !documentsGenerated ? (
+        ) : !assessmentGenerated ? (
           <div className="w-full animate-fade-in">
             <div className="mb-8 text-center">
               <h2 className="text-2xl font-semibold text-pharmacy-darkBlue mb-2">
@@ -225,7 +263,7 @@ const Index = () => {
               </p>
             </div>
 
-            <ExtractedDataReview 
+            <KeswickDataReview 
               extractedData={extractedData}
               onDataValidated={handleDataValidated}
               onDataUpdated={handleDataUpdated}
@@ -243,69 +281,19 @@ const Index = () => {
               
               <Button
                 disabled={!isDataValidated}
-                onClick={handleFinalizeDocuments}
+                onClick={handleFinalizeAssessment}
                 className={`bg-pharmacy-blue hover:bg-pharmacy-darkBlue transition-colors duration-200 px-8 ${!isDataValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                Generate Final Documents
+                Generate Final Risk Assessment
               </Button>
             </div>
           </div>
         ) : (
-          <div className="w-full animate-fade-in">
-            <div className="mb-8 text-center">
-              <h2 className="text-2xl font-semibold text-pharmacy-darkBlue mb-2">
-                Documents Generated
-              </h2>
-              <p className="text-pharmacy-gray">
-                Your compound documents have been successfully generated
-              </p>
-            </div>
-
-            <div className="glass-card rounded-xl overflow-hidden">
-              <Tabs 
-                defaultValue="risk" 
-                className="w-full"
-                onValueChange={setActiveTab}
-              >
-                <div className="flex justify-center p-4 bg-pharmacy-neutral border-b">
-                  <TabsList className="grid grid-cols-2 w-full max-w-md">
-                    <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
-                    <TabsTrigger value="formula">Master Formula</TabsTrigger>
-                  </TabsList>
-                </div>
-                
-                <TabsContent value="risk" className="m-0">
-                  {riskAssessmentPDF && (
-                    <DocumentPreview 
-                      pdfData={riskAssessmentPDF} 
-                      fileName={file ? `${file.name.replace('.pdf', '')}_risk_assessment.pdf` : 'risk-assessment.pdf'}
-                      documentType="Risk Assessment"
-                    />
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="formula" className="m-0">
-                  {masterFormulaPDF && (
-                    <DocumentPreview 
-                      pdfData={masterFormulaPDF} 
-                      fileName={file ? `${file.name.replace('.pdf', '')}_master_formula.pdf` : 'master-formula.pdf'}
-                      documentType="Master Formula"
-                    />
-                  )}
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            <div className="mt-8 flex justify-center">
-              <Button
-                variant="outline"
-                onClick={handleStartOver}
-                className="flex items-center text-pharmacy-darkBlue hover:text-pharmacy-blue transition-colors duration-200"
-              >
-                Process Another Document
-              </Button>
-            </div>
-          </div>
+          <KeswickRiskAssessment
+            assessmentData={extractedData}
+            fileName={file ? `${file.name.replace('.pdf', '')}_risk_assessment.pdf` : 'risk-assessment.pdf'}
+            onStartOver={handleStartOver}
+          />
         )}
         
         <footer className="mt-8 text-center text-xs text-pharmacy-gray/70">
