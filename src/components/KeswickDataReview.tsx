@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { KeswickAssessmentData } from "./KeswickRiskAssessment";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -55,11 +54,13 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
     setIsEditing(false);
   };
   
+  // Fix for error TS2698: Spread types may only be created from object types
   const handleInputChange = (field: keyof KeswickAssessmentData, value: any) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setFormData(prev => {
+      const newData = { ...prev };
+      newData[field] = value;
+      return newData;
+    });
   };
   
   const handleActiveIngredientChange = (index: number, field: string, value: any) => {
@@ -68,13 +69,16 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
     if (field === "nioshStatus.isOnNioshList" || field === "nioshStatus.table") {
       // Handle nested object
       const [parent, child] = field.split('.');
-      updatedIngredients[index] = {
-        ...updatedIngredients[index],
-        [parent]: {
-          ...updatedIngredients[index][parent as keyof typeof updatedIngredients[number]],
-          [child]: value
-        }
-      };
+      
+      if (parent === "nioshStatus") {
+        updatedIngredients[index] = {
+          ...updatedIngredients[index],
+          nioshStatus: {
+            ...updatedIngredients[index].nioshStatus,
+            [child]: value
+          }
+        };
+      }
     } else {
       // Handle direct field
       updatedIngredients[index] = {
@@ -143,19 +147,43 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
     }
   };
 
+  // Fix for error TS2537: Type 'KeswickAssessmentData' has no matching index signature
   const handleNestedObjectChange = (objectPath: string, field: string, value: any) => {
     const [parent, child] = objectPath.split('.');
     
-    setFormData(prev => ({
-      ...prev,
-      [parent]: {
-        ...prev[parent as keyof typeof prev],
-        [child]: {
-          ...prev[parent as keyof typeof prev][child as keyof typeof prev[typeof parent]],
+    if (parent === "preparationDetails") {
+      setFormData(prev => ({
+        ...prev,
+        preparationDetails: {
+          ...prev.preparationDetails,
           [field]: value
         }
-      }
-    }));
+      }));
+    } else if (parent === "safetyChecks") {
+      setFormData(prev => ({
+        ...prev,
+        safetyChecks: {
+          ...prev.safetyChecks,
+          [field]: value
+        }
+      }));
+    } else if (parent === "workflowConsiderations") {
+      setFormData(prev => ({
+        ...prev,
+        workflowConsiderations: {
+          ...prev.workflowConsiderations,
+          [field]: value
+        }
+      }));
+    } else if (parent === "safetyEquipment") {
+      setFormData(prev => ({
+        ...prev,
+        safetyEquipment: {
+          ...prev.safetyEquipment,
+          [field]: value
+        }
+      }));
+    }
   };
 
   const handlePPEChange = (field: string, value: any) => {
