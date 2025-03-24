@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator, DocumentPreview } from '@/components';
-import { Button } from '@/components/ui/button';
+import ExtractedDataReview, { ExtractedFormulaData } from '@/components/ExtractedDataReview';
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Form } from "@/components/ui/form";
+import { ArrowLeft, Info } from "lucide-react";
 
 // This would be replaced with actual PDF processing in production
 const mockProcessDocument = async (file: File): Promise<{
@@ -50,24 +51,6 @@ const mockProcessDocument = async (file: File): Promise<{
   });
 };
 
-export interface IngredientData {
-  name: string;
-  concentration?: string;
-  amount?: string;
-  nioshHazard?: string;
-}
-
-export interface ExtractedFormulaData {
-  compoundName: string;
-  activeIngredients: IngredientData[];
-  inactiveIngredients: IngredientData[];
-  beyondUseDate: string;
-  storageInstructions: string;
-  containerType: string;
-  compoundingProcedure: string[];
-  specialInstructions: string;
-}
-
 const Index = () => {
   const [file, setFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -87,6 +70,7 @@ const Index = () => {
   ]);
   const [currentStep, setCurrentStep] = useState(0);
   const [activeTab, setActiveTab] = useState("risk");
+  const [isDataValidated, setIsDataValidated] = useState(false);
 
   // Simulates different loading messages during processing
   useEffect(() => {
@@ -113,6 +97,7 @@ const Index = () => {
     setMasterFormulaPDF(null);
     setDocumentsGenerated(false);
     setExtractedData(null);
+    setIsDataValidated(false);
   };
 
   const handleGenerateDocuments = async () => {
@@ -132,12 +117,11 @@ const Index = () => {
       setRiskAssessmentPDF(riskAssessmentData);
       setMasterFormulaPDF(masterFormulaData);
       setExtractedData(extractedData);
-      setDocumentsGenerated(true);
       
-      toast.success("Documents generated successfully");
+      toast.success("Document processed successfully");
     } catch (error) {
-      console.error("Error generating documents:", error);
-      toast.error("Failed to generate documents. Please try again.");
+      console.error("Error processing document:", error);
+      toast.error("Failed to process document. Please try again.");
     } finally {
       setIsProcessing(false);
     }
@@ -150,12 +134,31 @@ const Index = () => {
     setDocumentsGenerated(false);
     setExtractedData(null);
     setIsProcessing(false);
+    setIsDataValidated(false);
+  };
+  
+  const handleDataValidated = () => {
+    setIsDataValidated(true);
+  };
+  
+  const handleDataUpdated = (updatedData: ExtractedFormulaData) => {
+    setExtractedData(updatedData);
+  };
+  
+  const handleFinalizeDocuments = () => {
+    if (!isDataValidated) {
+      toast.error("Please validate the data before generating final documents");
+      return;
+    }
+    
+    setDocumentsGenerated(true);
+    toast.success("Final documents generated successfully");
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-pharmacy-neutral p-4">
       <div className="w-full max-w-6xl">
-        {!documentsGenerated ? (
+        {!extractedData ? (
           <div className="glass-card rounded-2xl p-8 shadow-glass">
             <div className="text-center mb-8 animate-fade-in">
               <h1 className="text-3xl font-semibold text-pharmacy-darkBlue mb-2">
@@ -211,6 +214,42 @@ const Index = () => {
               </>
             )}
           </div>
+        ) : !documentsGenerated ? (
+          <div className="w-full animate-fade-in">
+            <div className="mb-8 text-center">
+              <h2 className="text-2xl font-semibold text-pharmacy-darkBlue mb-2">
+                Review Extracted Information
+              </h2>
+              <p className="text-pharmacy-gray">
+                Please review and validate the information extracted from your PDF
+              </p>
+            </div>
+
+            <ExtractedDataReview 
+              extractedData={extractedData}
+              onDataValidated={handleDataValidated}
+              onDataUpdated={handleDataUpdated}
+            />
+            
+            <div className="mt-8 flex justify-between">
+              <Button
+                variant="outline"
+                onClick={handleStartOver}
+                className="flex items-center text-pharmacy-darkBlue"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Upload Different PDF
+              </Button>
+              
+              <Button
+                disabled={!isDataValidated}
+                onClick={handleFinalizeDocuments}
+                className={`bg-pharmacy-blue hover:bg-pharmacy-darkBlue transition-colors duration-200 px-8 ${!isDataValidated ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                Generate Final Documents
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="w-full animate-fade-in">
             <div className="mb-8 text-center">
@@ -221,69 +260,6 @@ const Index = () => {
                 Your compound documents have been successfully generated
               </p>
             </div>
-
-            {extractedData && (
-              <div className="mb-8 glass-card p-6 rounded-xl">
-                <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-4">Extracted Information</h3>
-                <p className="text-sm text-pharmacy-gray mb-2">
-                  Please review the extracted information below and verify its accuracy. If needed, you can modify the information before downloading the final documents.
-                </p>
-                
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-md font-medium text-pharmacy-darkBlue mb-2">Compound Details</h4>
-                    <div className="text-sm space-y-2">
-                      <p><span className="font-medium">Name:</span> {extractedData.compoundName}</p>
-                      <p><span className="font-medium">BUD:</span> {extractedData.beyondUseDate}</p>
-                      <p><span className="font-medium">Storage:</span> {extractedData.storageInstructions}</p>
-                      <p><span className="font-medium">Container:</span> {extractedData.containerType}</p>
-                    </div>
-                    
-                    <h4 className="text-md font-medium text-pharmacy-darkBlue mt-4 mb-2">Active Ingredients</h4>
-                    <div className="text-sm space-y-1">
-                      {extractedData.activeIngredients.map((ingredient, index) => (
-                        <div key={index} className="flex justify-between border-b pb-1">
-                          <p>{ingredient.name} ({ingredient.concentration})</p>
-                          <p className={ingredient.nioshHazard?.includes("Hazardous") ? "text-red-500" : "text-green-600"}>
-                            {ingredient.nioshHazard}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-md font-medium text-pharmacy-darkBlue mb-2">Inactive Ingredients</h4>
-                    <div className="text-sm space-y-1">
-                      {extractedData.inactiveIngredients.map((ingredient, index) => (
-                        <div key={index} className="flex justify-between border-b pb-1">
-                          <p>{ingredient.name}</p>
-                          <p>{ingredient.amount}</p>
-                        </div>
-                      ))}
-                    </div>
-                    
-                    <h4 className="text-md font-medium text-pharmacy-darkBlue mt-4 mb-2">Compounding Procedure</h4>
-                    <div className="text-sm space-y-1">
-                      {extractedData.compoundingProcedure.map((step, index) => (
-                        <p key={index} className="text-sm">{step}</p>
-                      ))}
-                    </div>
-                    
-                    <h4 className="text-md font-medium text-pharmacy-darkBlue mt-4 mb-2">Special Instructions</h4>
-                    <p className="text-sm">{extractedData.specialInstructions}</p>
-                  </div>
-                </div>
-                
-                <div className="mt-6 flex justify-center">
-                  <Button
-                    className="bg-pharmacy-blue hover:bg-pharmacy-darkBlue text-white"
-                  >
-                    Confirm Information
-                  </Button>
-                </div>
-              </div>
-            )}
 
             <div className="glass-card rounded-xl overflow-hidden">
               <Tabs 
@@ -326,7 +302,7 @@ const Index = () => {
                 onClick={handleStartOver}
                 className="flex items-center text-pharmacy-darkBlue hover:text-pharmacy-blue transition-colors duration-200"
               >
-                Upload Another Document
+                Process Another Document
               </Button>
             </div>
           </div>

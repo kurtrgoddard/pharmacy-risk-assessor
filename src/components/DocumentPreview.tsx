@@ -1,19 +1,24 @@
 
 import React, { useState } from "react";
-import { FileText, Download, Eye, EyeOff, Printer } from "lucide-react";
+import { FileText, Download, Eye, EyeOff, Printer, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 
 interface DocumentPreviewProps {
   pdfData: string;
   fileName: string;
   documentType: "Risk Assessment" | "Master Formula";
+  onValidateData?: () => void;
+  isValidated?: boolean;
 }
 
 const DocumentPreview: React.FC<DocumentPreviewProps> = ({ 
   pdfData, 
   fileName,
-  documentType
+  documentType,
+  onValidateData,
+  isValidated = false
 }) => {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
@@ -44,13 +49,24 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
   return (
     <div className="w-full animate-fade-up">
-      <div className="rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 bg-pharmacy-neutral border-b">
+      <div className="rounded-xl overflow-hidden border border-pharmacy-lightBlue/30">
+        <div className="flex items-center justify-between p-4 bg-pharmacy-neutral">
           <div className="flex items-center">
             <FileText className="w-5 h-5 text-pharmacy-blue mr-2" />
             <h3 className="font-medium text-pharmacy-darkBlue">{documentType}</h3>
           </div>
           <div className="flex space-x-2">
+            {onValidateData && (
+              <Button 
+                variant={isValidated ? "outline" : "default"}
+                size="sm"
+                onClick={onValidateData}
+                className={`flex items-center text-xs ${isValidated ? 'text-green-600 border-green-600' : 'bg-pharmacy-blue hover:bg-pharmacy-darkBlue'}`}
+              >
+                <Check className="w-4 h-4 mr-1" />
+                {isValidated ? "Validated" : "Validate Data"}
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm"
