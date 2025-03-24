@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, Check, Edit, Info, AlertCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -944,4 +945,207 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                     value={formData.ppe.gloves}
                     disabled={!isEditing}
                     onChange={(e) => handlePPEChange('gloves', e.target.value)}
-                    className="w
+                    className="w-full p-2 border rounded-md text-sm"
+                  >
+                    <option value="Regular">Regular</option>
+                    <option value="Chemotherapy">Chemotherapy</option>
+                    <option value="Double Gloves">Double Gloves</option>
+                  </select>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block text-pharmacy-darkBlue">Gown</label>
+                  <select
+                    value={formData.ppe.gown}
+                    disabled={!isEditing}
+                    onChange={(e) => handlePPEChange('gown', e.target.value)}
+                    className="w-full p-2 border rounded-md text-sm"
+                  >
+                    <option value="Designated Compounding Jacket">Designated Compounding Jacket</option>
+                    <option value="Disposable Hazardous Gown">Disposable Hazardous Gown</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium block text-pharmacy-darkBlue">Mask</label>
+                  <select
+                    value={formData.ppe.mask}
+                    disabled={!isEditing}
+                    onChange={(e) => handlePPEChange('mask', e.target.value)}
+                    className="w-full p-2 border rounded-md text-sm"
+                  >
+                    <option value="Surgical mask">Surgical mask</option>
+                    <option value="N95">N95</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                
+                <div className="flex items-center space-x-2 h-full pt-6">
+                  <Checkbox 
+                    id="eye-protection"
+                    checked={formData.ppe.eyeProtection}
+                    disabled={!isEditing}
+                    onCheckedChange={(checked) => handlePPEChange('eyeProtection', !!checked)}
+                  />
+                  <label 
+                    htmlFor="eye-protection"
+                    className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
+                  >
+                    Eye Protection Required
+                  </label>
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium block text-pharmacy-darkBlue mb-2">Other PPE</label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {otherPPEOptions.map((option) => (
+                    <div key={option} className="flex items-center space-x-2">
+                      <Checkbox 
+                        id={`ppe-${option}`}
+                        checked={formData.ppe.otherPPE.includes(option)}
+                        disabled={!isEditing}
+                        onCheckedChange={(checked) => 
+                          handleCheckboxListChange('ppe.otherPPE', option, !!checked)
+                        }
+                      />
+                      <label 
+                        htmlFor={`ppe-${option}`}
+                        className="text-sm text-pharmacy-darkBlue cursor-pointer"
+                      >
+                        {option}
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="safety-equipment">
+          <AccordionTrigger className="text-md font-medium text-pharmacy-darkBlue">
+            Safety Equipment Required
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="eye-wash"
+                  checked={formData.safetyEquipment.eyeWashStation}
+                  disabled={!isEditing}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      safetyEquipment: {
+                        ...prev.safetyEquipment,
+                        eyeWashStation: !!checked
+                      }
+                    }));
+                  }}
+                />
+                <label 
+                  htmlFor="eye-wash"
+                  className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
+                >
+                  Eye wash station
+                </label>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Checkbox 
+                  id="safety-shower"
+                  checked={formData.safetyEquipment.safetyShower}
+                  disabled={!isEditing}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({
+                      ...prev,
+                      safetyEquipment: {
+                        ...prev.safetyEquipment,
+                        safetyShower: !!checked
+                      }
+                    }));
+                  }}
+                />
+                <label 
+                  htmlFor="safety-shower"
+                  className="text-sm font-medium text-pharmacy-darkBlue cursor-pointer"
+                >
+                  Safety shower
+                </label>
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        
+        <AccordionItem value="risk-level">
+          <AccordionTrigger className="text-md font-medium text-pharmacy-darkBlue">
+            Risk Level & Rationale
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium block text-pharmacy-darkBlue">Risk Level Assigned</label>
+                <select
+                  value={formData.riskLevel}
+                  disabled={!isEditing}
+                  onChange={(e) => handleInputChange('riskLevel', e.target.value)}
+                  className="w-full p-2 border rounded-md text-sm"
+                >
+                  <option value="Level A">Level A</option>
+                  <option value="Level B">Level B</option>
+                  <option value="Level C">Level C</option>
+                </select>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium block text-pharmacy-darkBlue">
+                  Rationale for Risk Mitigation Measures
+                </label>
+                <Textarea 
+                  value={formData.rationale}
+                  disabled={!isEditing}
+                  onChange={(e) => handleInputChange('rationale', e.target.value)}
+                  className="w-full min-h-[100px]"
+                  placeholder="Briefly justify based on hazards, quantities, concentrations, PPE, and compounding frequency."
+                />
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+      
+      <div className="mt-6 bg-blue-50 p-4 rounded-lg border border-blue-100">
+        <div className="flex items-start">
+          <Info className="w-5 h-5 text-blue-500 mr-2 mt-0.5" />
+          <div>
+            <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Compliance Information</h4>
+            <p className="text-xs text-pharmacy-gray">
+              This assessment follows the NAPRA Model Standards for Pharmacy Compounding of Non-sterile Preparations and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
+              Please ensure all information is accurate before generating the final document.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {formData.activeIngredients.some(ing => ing.nioshStatus.isOnNioshList) && (
+        <div className="mt-4 bg-red-50 p-4 rounded-lg border border-red-100">
+          <div className="flex items-start">
+            <AlertTriangle className="w-5 h-5 text-red-500 mr-2 mt-0.5" />
+            <div>
+              <h4 className="text-sm font-medium text-red-700 mb-1">Hazardous Ingredients Detected</h4>
+              <p className="text-xs text-red-600">
+                One or more active ingredients are classified as hazardous according to NIOSH. 
+                Ensure appropriate safety measures are selected for this compound.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default KeswickDataReview;
