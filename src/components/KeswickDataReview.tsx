@@ -996,7 +996,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
           <div>
             <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Compliance Information</h4>
             <p className="text-xs text-pharmacy-gray">
-              This assessment follows the NAPRA Model Standards for Pharmacy Compounding of Non-sterile Preparations and USP <795>/<800> guidelines.
+              This assessment follows the NAPRA Model Standards for Pharmacy Compounding of Non-sterile Preparations and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
               Please ensure all information is accurate before generating the final document.
             </p>
           </div>
