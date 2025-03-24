@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { FileText, Download, Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface PDFViewerProps {
   pdfData: string;

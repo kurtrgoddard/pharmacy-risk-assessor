@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator, RiskAssessment } from '@/components';
 import { Button } from '@/components/ui/button';
-import { toast } from '@/components/ui/sonner';
+import { toast } from "sonner";
 
 // This would be replaced with actual PDF generation in production
 const mockGeneratePDF = async (file: File): Promise<string> => {

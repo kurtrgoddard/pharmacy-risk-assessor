@@ -1,7 +1,7 @@
 
 import React, { useState, useRef } from "react";
 import { Upload } from "lucide-react";
-import { toast } from "@/components/ui/sonner";
+import { toast } from "sonner";
 
 interface FileUploaderProps {
   onFileUploaded: (file: File) => void;
