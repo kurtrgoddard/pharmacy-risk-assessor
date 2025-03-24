@@ -2,14 +2,20 @@
 import React, { useState, useRef } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
+import * as pdfjsLib from "pdfjs-dist";
+
+// Set the worker source path
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
 interface FileUploaderProps {
-  onFileUploaded: (file: File) => void;
+  onFileUploaded: (file: File, extractedText?: string) => void;
 }
 
 const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
@@ -38,22 +44,61 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
     }
   };
 
-  const validateAndSetFile = (file: File) => {
-    // Check if file is PDF
-    if (file.type !== "application/pdf") {
-      toast.error("Please upload a PDF file");
-      return;
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      
+      let extractedText = '';
+      
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        extractedText += textContent.items.map((item: any) => item.str).join(' ');
+      }
+      
+      console.log("Extracted PDF Text:", extractedText);
+      return extractedText;
+    } catch (error) {
+      console.error("Error extracting text from PDF:", error);
+      throw new Error("Failed to extract text from PDF");
     }
-    
-    // Check file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size exceeds 10MB limit");
-      return;
-    }
+  };
 
-    setSelectedFile(file);
-    onFileUploaded(file);
-    toast.success("File uploaded successfully");
+  const validateAndSetFile = async (file: File) => {
+    setError(null);
+    setIsLoading(true);
+    
+    try {
+      // Check if file is PDF
+      if (file.type !== "application/pdf") {
+        toast.error("Please upload a PDF file");
+        setError("Only PDF files are supported");
+        setIsLoading(false);
+        return;
+      }
+      
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size exceeds 10MB limit");
+        setError("File size exceeds 10MB limit");
+        setIsLoading(false);
+        return;
+      }
+
+      // Extract text from PDF
+      const extractedText = await extractTextFromPDF(file);
+      
+      setSelectedFile(file);
+      onFileUploaded(file, extractedText);
+      toast.success("File processed successfully");
+    } catch (error) {
+      console.error("Error processing file:", error);
+      toast.error("Failed to process PDF file");
+      setError("Failed to extract data from PDF");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const triggerFileInput = () => {
@@ -63,7 +108,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
   return (
     <div className="w-full max-w-xl mx-auto animate-fade-up">
       <div 
-        className={`file-drop-area p-8 flex flex-col items-center justify-center cursor-pointer group ${isDragging ? 'active' : ''}`}
+        className={`file-drop-area p-8 flex flex-col items-center justify-center cursor-pointer group ${isDragging ? 'active' : ''} ${isLoading ? 'opacity-75 pointer-events-none' : ''}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
@@ -75,6 +120,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
           ref={fileInputRef}
           onChange={handleFileInputChange}
           accept=".pdf"
+          disabled={isLoading}
         />
         
         <div className="w-16 h-16 rounded-full bg-pharmacy-blue/10 flex items-center justify-center mb-4 group-hover:bg-pharmacy-blue/20 transition-all duration-300">
@@ -92,9 +138,22 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
         <p className="text-pharmacy-gray/70 text-xs">
           Supports: PDF (Max 10MB)
         </p>
+        
+        {isLoading && (
+          <div className="mt-4 flex items-center justify-center">
+            <div className="animate-spin h-5 w-5 border-2 border-pharmacy-blue border-t-transparent rounded-full mr-2"></div>
+            <span className="text-sm text-pharmacy-gray">Processing PDF...</span>
+          </div>
+        )}
+        
+        {error && (
+          <p className="mt-4 text-sm text-red-500">
+            {error}
+          </p>
+        )}
       </div>
       
-      {selectedFile && (
+      {selectedFile && !isLoading && (
         <div className="mt-4 text-center">
           <p className="text-sm text-pharmacy-gray">
             File selected: <span className="font-medium text-pharmacy-darkBlue">{selectedFile.name}</span>

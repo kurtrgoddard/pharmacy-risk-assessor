@@ -521,7 +521,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                   <Checkbox
                     id={`physical-${option}`}
                     checked={formData.physicalCharacteristics.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("physicalCharacteristics", option, checked)}
+                    onCheckedChange={(checked) => handleCheckboxListChange("physicalCharacteristics", option, !!checked)}
                     disabled={!isEditing}
                   />
                   <label htmlFor={`physical-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -542,7 +542,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                   <Checkbox
                     id={`equipment-${option}`}
                     checked={formData.equipmentRequired.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("equipmentRequired", option, checked)}
+                    onCheckedChange={(checked) => handleCheckboxListChange("equipmentRequired", option, !!checked)}
                     disabled={!isEditing}
                   />
                   <label htmlFor={`equipment-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -699,7 +699,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                   <Checkbox
                     id={`exposure-${option}`}
                     checked={formData.exposureRisks.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("exposureRisks", option, checked)}
+                    onCheckedChange={(checked) => handleCheckboxListChange("exposureRisks", option, !!checked)}
                     disabled={!isEditing}
                   />
                   <label htmlFor={`exposure-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -767,7 +767,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                       <Checkbox
                         id={`ppe-${option}`}
                         checked={formData.ppe.otherPPE.includes(option)}
-                        onCheckedChange={(checked) => handleCheckboxListChange("ppe.otherPPE", option, checked)}
+                        onCheckedChange={(checked) => handleCheckboxListChange("ppe.otherPPE", option, !!checked)}
                         disabled={!isEditing}
                       />
                       <label htmlFor={`ppe-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">

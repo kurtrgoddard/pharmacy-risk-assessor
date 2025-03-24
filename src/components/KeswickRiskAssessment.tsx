@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, PDFViewer, Font, Image } from '@react-pdf/renderer';
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ const styles = StyleSheet.create({
   },
   table: {
     display: 'flex',
+    flexDirection: 'column',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
