@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator } from '@/components';
 import { Button } from "@/components/ui/button";
@@ -136,12 +135,19 @@ const Index = () => {
     }
   }, [isProcessing, processingSteps]);
 
-  const handleFileUploaded = (uploadedFile: File) => {
+  const handleFileUploaded = (uploadedFile: File, extractedText?: string) => {
     setFile(uploadedFile);
     setAssessmentPDF(null);
     setAssessmentGenerated(false);
     setExtractedData(null);
     setIsDataValidated(false);
+    
+    // Log extracted text for debugging
+    if (extractedText) {
+      console.log("Extracted text from PDF:", extractedText);
+      // Here you could implement logic to parse the extractedText
+      // and pre-populate the form data based on the PDF content
+    }
   };
 
   const handleGenerateDocuments = async () => {

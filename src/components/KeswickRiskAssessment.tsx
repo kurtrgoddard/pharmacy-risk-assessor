@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Document, Page, Text, View, StyleSheet, PDFViewer, Font, Image } from '@react-pdf/renderer';
 import { Button } from "@/components/ui/button";
@@ -208,6 +207,10 @@ const PDFViewerDocument: React.FC<PDFViewerDocumentProps> = ({ assessmentData, f
     <PDFViewer
       width="100%"
       height={600}
+      style={{ 
+        display: "flex", 
+        flexDirection: "column" 
+      }}
       className="border border-gray-300 rounded-md shadow-sm"
     >
       <RiskAssessmentDocument assessmentData={assessmentData} />
