@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, Check, Edit, Info, AlertCircle, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -391,7 +390,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         checked={ingredient.nioshStatus.isOnNioshList}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "nioshStatus.isOnNioshList", checked)}
+                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "nioshStatus.isOnNioshList", !!checked)}
                         disabled={!isEditing}
                         id={`niosh-listed-${index}`}
                       />
@@ -423,7 +422,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         checked={ingredient.reproductiveToxicity}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "reproductiveToxicity", checked)}
+                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "reproductiveToxicity", !!checked)}
                         disabled={!isEditing}
                         id={`reproductive-toxicity-${index}`}
                       />
@@ -437,7 +436,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                     <div className="flex items-center space-x-2">
                       <Checkbox
                         checked={ingredient.whmisHazards}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "whmisHazards", checked)}
+                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "whmisHazards", !!checked)}
                         disabled={!isEditing}
                         id={`whmis-hazards-${index}`}
                       />
@@ -499,7 +498,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.preparationDetails.concentrationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("preparationDetails", "concentrationRisk", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("preparationDetails", "concentrationRisk", !!checked)}
                     disabled={!isEditing}
                     id="concentration-risk"
                   />
@@ -563,7 +562,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyChecks.specialEducation.required}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "specialEducation", { ...formData.safetyChecks.specialEducation, required: checked })}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "specialEducation", { ...formData.safetyChecks.specialEducation, required: !!checked })}
                     disabled={!isEditing}
                     id="special-education-required"
                   />
@@ -588,7 +587,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyChecks.verificationRequired}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "verificationRequired", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "verificationRequired", !!checked)}
                     disabled={!isEditing}
                     id="verification-required"
                   />
@@ -602,7 +601,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyChecks.equipmentAvailable}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "equipmentAvailable", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "equipmentAvailable", !!checked)}
                     disabled={!isEditing}
                     id="equipment-available"
                   />
@@ -616,7 +615,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyChecks.ventilationRequired}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "ventilationRequired", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "ventilationRequired", !!checked)}
                     disabled={!isEditing}
                     id="ventilation-required"
                   />
@@ -638,7 +637,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.workflowConsiderations.uninterruptedWorkflow.status}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "uninterruptedWorkflow", { ...formData.workflowConsiderations.uninterruptedWorkflow, status: checked })}
+                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "uninterruptedWorkflow", { ...formData.workflowConsiderations.uninterruptedWorkflow, status: !!checked })}
                     disabled={!isEditing}
                     id="workflow-uninterrupted"
                   />
@@ -663,7 +662,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.workflowConsiderations.microbialContaminationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "microbialContaminationRisk", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "microbialContaminationRisk", !!checked)}
                     disabled={!isEditing}
                     id="microbial-contamination-risk"
                   />
@@ -677,7 +676,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.workflowConsiderations.crossContaminationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "crossContaminationRisk", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "crossContaminationRisk", !!checked)}
                     disabled={!isEditing}
                     id="cross-contamination-risk"
                   />
@@ -750,7 +749,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.ppe.eyeProtection}
-                    onCheckedChange={(checked) => handlePPEChange("eyeProtection", checked)}
+                    onCheckedChange={(checked) => handlePPEChange("eyeProtection", !!checked)}
                     disabled={!isEditing}
                     id="eye-protection-required"
                   />
@@ -790,7 +789,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyEquipment.eyeWashStation}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "eyeWashStation", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "eyeWashStation", !!checked)}
                     disabled={!isEditing}
                     id="eye-wash-station"
                   />
@@ -804,7 +803,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 <div className="flex items-center space-x-2">
                   <Checkbox
                     checked={formData.safetyEquipment.safetyShower}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "safetyShower", checked)}
+                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "safetyShower", !!checked)}
                     disabled={!isEditing}
                     id="safety-shower"
                   />
@@ -834,18 +833,3 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
               <div>
                 <label className="block text-sm font-medium text-pharmacy-gray mb-1">Rationale</label>
                 <Textarea
-                  value={formData.rationale}
-                  onChange={(e) => handleInputChange("rationale", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-    </div>
-  );
-};
-
-export default KeswickDataReview;

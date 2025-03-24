@@ -35,7 +35,7 @@ const styles = StyleSheet.create({
     color: '#546e7a',
   },
   table: {
-    display: 'table',
+    display: 'flex',
     width: 'auto',
     borderStyle: 'solid',
     borderWidth: 1,
