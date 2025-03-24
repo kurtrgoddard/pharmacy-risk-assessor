@@ -13,13 +13,18 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfData, fileName }) => {
   const [isPreviewExpanded, setIsPreviewExpanded] = useState(false);
 
   const handleDownload = () => {
-    const link = document.createElement("a");
-    link.href = pdfData;
-    link.download = fileName || "risk-assessment.pdf";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("PDF downloaded successfully");
+    try {
+      const link = document.createElement("a");
+      link.href = pdfData;
+      link.download = fileName || "risk-assessment.pdf";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      toast.success("PDF downloaded successfully");
+    } catch (error) {
+      console.error("Download error:", error);
+      toast.error("Failed to download PDF");
+    }
   };
 
   const togglePreview = () => {
@@ -66,11 +71,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfData, fileName }) => {
         </div>
         
         <div className={`transition-all duration-300 ease-in-out overflow-hidden ${isPreviewExpanded ? 'h-[800px]' : 'h-[400px]'}`}>
-          <iframe 
-            src={pdfData} 
-            className="w-full h-full"
-            title="PDF Preview"
-          />
+          {pdfData ? (
+            <iframe 
+              src={pdfData} 
+              className="w-full h-full"
+              title="PDF Preview"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full bg-gray-50">
+              <p className="text-pharmacy-gray">No PDF data available</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

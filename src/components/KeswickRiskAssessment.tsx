@@ -85,7 +85,9 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
         </p>
       </div>
       
-      <PDFViewerWrapper assessmentData={assessmentData} fileName={fileName} />
+      <div className="glass-card rounded-xl overflow-hidden p-4 mb-8">
+        <PDFViewerWrapper assessmentData={assessmentData} fileName={fileName} />
+      </div>
 
       <div className="mt-8 flex justify-center">
         <Button

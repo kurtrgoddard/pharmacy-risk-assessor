@@ -21,20 +21,22 @@ const CompoundDetailsSection: React.FC<CompoundDetailsSectionProps> = ({
         <label className="block text-sm font-medium text-pharmacy-gray mb-1">Compound Name</label>
         <Input
           type="text"
-          value={compoundName}
+          value={compoundName || ""}
           onChange={(e) => onInputChange("compoundName", e.target.value)}
           disabled={!isEditing}
           className="w-full"
+          placeholder="Enter compound name"
         />
       </div>
       <div>
         <label className="block text-sm font-medium text-pharmacy-gray mb-1">DIN</label>
         <Input
           type="text"
-          value={din}
+          value={din || ""}
           onChange={(e) => onInputChange("din", e.target.value)}
           disabled={!isEditing}
           className="w-full"
+          placeholder="Enter DIN"
         />
       </div>
     </div>
