@@ -1,15 +1,22 @@
 
-import React, { useState, useEffect } from "react";
-import { AlertTriangle, Check, Edit, Info, AlertCircle, Shield } from "lucide-react";
+import React, { useState, useEffect, useCallback } from "react";
+import { AlertTriangle, Check, Edit, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { KeswickAssessmentData } from "./KeswickRiskAssessment";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
 import { getNioshHazardInfo, getHazardLevel, getPPERecommendations, HazardLevel } from "@/utils/nioshData";
+
+// Import component sections
+import CompoundDetailsSection from "./review/CompoundDetailsSection";
+import ActiveIngredientsSection from "./review/ActiveIngredientsSection";
+import PreparationDetailsSection from "./review/PreparationDetailsSection";
+import CheckboxListSection from "./review/CheckboxListSection";
+import SafetyChecksSection from "./review/SafetyChecksSection";
+import WorkflowConsiderationsSection from "./review/WorkflowConsiderationsSection";
+import PPESection from "./review/PPESection";
+import SafetyEquipmentSection from "./review/SafetyEquipmentSection";
+import RiskLevelSection from "./review/RiskLevelSection";
 
 interface KeswickDataReviewProps {
   extractedData: KeswickAssessmentData;
@@ -24,6 +31,11 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<KeswickAssessmentData>(extractedData);
+  
+  // Get list of ingredient names for dependency tracking
+  const ingredientNames = useCallback(() => 
+    formData.activeIngredients.map(i => i.name),
+  [formData.activeIngredients]);
   
   // Auto-detect NIOSH hazard information on initial load and when ingredients change
   useEffect(() => {
@@ -73,7 +85,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
         }));
       }
     }
-  }, [formData.activeIngredients.map(i => i.name).join(","), isEditing]);
+  }, [ingredientNames(), isEditing]);
   
   const handleValidateData = () => {
     // Basic validation
@@ -145,46 +157,6 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       activeIngredients: updatedIngredients
     }));
   };
-
-  // Get hazard badge styling based on hazard level
-  const getHazardBadge = (hazardLevel?: HazardLevel) => {
-    switch (hazardLevel) {
-      case "High Hazard":
-        return (
-          <Badge className="bg-red-500 text-white hover:bg-red-600">
-            <AlertTriangle className="w-3 h-3 mr-1" />
-            High Hazard
-          </Badge>
-        );
-      case "Moderate Hazard":
-        return (
-          <Badge className="bg-orange-500 text-white hover:bg-orange-600">
-            <AlertCircle className="w-3 h-3 mr-1" />
-            Moderate Hazard
-          </Badge>
-        );
-      default:
-        return (
-          <Badge className="bg-green-500 text-white hover:bg-green-600">
-            <Shield className="w-3 h-3 mr-1" />
-            Non-Hazardous
-          </Badge>
-        );
-    }
-  };
-
-  const physicalCharacteristicOptions = [
-    "Volatile Liquid", "Liquid", "Semi-Solid", "Solid", "Powder", "Cream/Ointment"
-  ];
-
-  const equipmentOptions = [
-    "Balance", "Capsule Machine", "Electric Mortar/Pestle", "Heat Gun", "Hot Plate", 
-    "Lab Oven", "Lollipop Mold", "Ointment Mill", "Powder Containment Hood", "Rectal Rocket Equipment"
-  ];
-
-  const exposureRiskOptions = ["Skin", "Eye", "Inhalation", "Oral", "Other"];
-
-  const otherPPEOptions = ["Head covers", "Hair covers", "Shoe covers"];
 
   const handleCheckboxListChange = (field: string, value: string, checked: boolean) => {
     let currentList: string[] = [];
@@ -276,6 +248,20 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
     }));
   };
 
+  // Define options for checkbox lists
+  const physicalCharacteristicOptions = [
+    "Volatile Liquid", "Liquid", "Semi-Solid", "Solid", "Powder", "Cream/Ointment"
+  ];
+
+  const equipmentOptions = [
+    "Balance", "Capsule Machine", "Electric Mortar/Pestle", "Heat Gun", "Hot Plate", 
+    "Lab Oven", "Lollipop Mold", "Ointment Mill", "Powder Containment Hood", "Rectal Rocket Equipment"
+  ];
+
+  const exposureRiskOptions = ["Skin", "Eye", "Inhalation", "Oral", "Other"];
+
+  const otherPPEOptions = ["Head covers", "Hair covers", "Shoe covers"];
+
   return (
     <div className="w-full glass-card p-6 rounded-xl">
       <div className="flex justify-between items-center mb-4">
@@ -334,513 +320,134 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
         <AccordionItem value="compound-details">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Compound Details</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Compound Name</label>
-                <Input
-                  type="text"
-                  value={formData.compoundName}
-                  onChange={(e) => handleInputChange("compoundName", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">DIN</label>
-                <Input
-                  type="text"
-                  value={formData.din}
-                  onChange={(e) => handleInputChange("din", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-            </div>
+            <CompoundDetailsSection
+              compoundName={formData.compoundName}
+              din={formData.din}
+              isEditing={isEditing}
+              onInputChange={handleInputChange}
+            />
           </AccordionContent>
         </AccordionItem>
         
         <AccordionItem value="active-ingredients">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Active Ingredients</AccordionTrigger>
           <AccordionContent>
-            {formData.activeIngredients.map((ingredient, index) => (
-              <div key={index} className="mb-4 p-4 rounded-md shadow-sm border border-gray-200">
-                <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-2">Ingredient #{index + 1}</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Name</label>
-                    <Input
-                      type="text"
-                      value={ingredient.name}
-                      onChange={(e) => handleActiveIngredientChange(index, "name", e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Manufacturer</label>
-                    <Input
-                      type="text"
-                      value={ingredient.manufacturer}
-                      onChange={(e) => handleActiveIngredientChange(index, "manufacturer", e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">NIOSH Listed</label>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={ingredient.nioshStatus.isOnNioshList}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "nioshStatus.isOnNioshList", !!checked)}
-                        disabled={!isEditing}
-                        id={`niosh-listed-${index}`}
-                      />
-                      <label htmlFor={`niosh-listed-${index}`} className="text-sm text-pharmacy-gray">
-                        Is on NIOSH List
-                      </label>
-                    </div>
-                  </div>
-                  {ingredient.nioshStatus.isOnNioshList && (
-                    <>
-                      <div>
-                        <label className="block text-sm font-medium text-pharmacy-gray mb-1">NIOSH Table</label>
-                        <Input
-                          type="text"
-                          value={ingredient.nioshStatus.table || ""}
-                          onChange={(e) => handleActiveIngredientChange(index, "nioshStatus.table", e.target.value)}
-                          disabled={!isEditing}
-                          className="w-full"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-pharmacy-gray mb-1">Hazard Level</label>
-                        {getHazardBadge(ingredient.nioshStatus.hazardLevel)}
-                      </div>
-                    </>
-                  )}
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Reproductive Toxicity</label>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={ingredient.reproductiveToxicity}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "reproductiveToxicity", !!checked)}
-                        disabled={!isEditing}
-                        id={`reproductive-toxicity-${index}`}
-                      />
-                      <label htmlFor={`reproductive-toxicity-${index}`} className="text-sm text-pharmacy-gray">
-                        Toxic to Reproduction
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">WHMIS Hazards</label>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={ingredient.whmisHazards}
-                        onCheckedChange={(checked) => handleActiveIngredientChange(index, "whmisHazards", !!checked)}
-                        disabled={!isEditing}
-                        id={`whmis-hazards-${index}`}
-                      />
-                      <label htmlFor={`whmis-hazards-${index}`} className="text-sm text-pharmacy-gray">
-                        WHMIS Health Hazards
-                      </label>
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">SDS Description</label>
-                    <Textarea
-                      value={ingredient.sdsDescription}
-                      onChange={(e) => handleActiveIngredientChange(index, "sdsDescription", e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Monograph Warnings</label>
-                    <Textarea
-                      value={ingredient.monographWarnings}
-                      onChange={(e) => handleActiveIngredientChange(index, "monographWarnings", e.target.value)}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+            <ActiveIngredientsSection
+              activeIngredients={formData.activeIngredients}
+              isEditing={isEditing}
+              onActiveIngredientChange={handleActiveIngredientChange}
+            />
           </AccordionContent>
         </AccordionItem>
         
         <AccordionItem value="preparation-details">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Preparation Details</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Frequency of Preparation</label>
-                <Input
-                  type="text"
-                  value={formData.preparationDetails.frequency}
-                  onChange={(e) => handleNestedObjectChange("preparationDetails", "frequency", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Quantity Prepared (Average)</label>
-                <Input
-                  type="text"
-                  value={formData.preparationDetails.quantity}
-                  onChange={(e) => handleNestedObjectChange("preparationDetails", "quantity", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Concentration presents health risk</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.preparationDetails.concentrationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("preparationDetails", "concentrationRisk", !!checked)}
-                    disabled={!isEditing}
-                    id="concentration-risk"
-                  />
-                  <label htmlFor="concentration-risk" className="text-sm text-pharmacy-gray">
-                    Presents Health Risk
-                  </label>
-                </div>
-              </div>
-            </div>
+            <PreparationDetailsSection
+              preparationDetails={formData.preparationDetails}
+              isEditing={isEditing}
+              onNestedObjectChange={handleNestedObjectChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="physical-characteristics">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Physical Characteristics</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {physicalCharacteristicOptions.map((option) => (
-                <div key={option} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`physical-${option}`}
-                    checked={formData.physicalCharacteristics.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("physicalCharacteristics", option, !!checked)}
-                    disabled={!isEditing}
-                  />
-                  <label htmlFor={`physical-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <CheckboxListSection
+              title="Physical Characteristics"
+              options={physicalCharacteristicOptions}
+              selectedValues={formData.physicalCharacteristics}
+              fieldName="physicalCharacteristics"
+              isEditing={isEditing}
+              onCheckboxListChange={handleCheckboxListChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="equipment-required">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Equipment Required</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {equipmentOptions.map((option) => (
-                <div key={option} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`equipment-${option}`}
-                    checked={formData.equipmentRequired.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("equipmentRequired", option, !!checked)}
-                    disabled={!isEditing}
-                  />
-                  <label htmlFor={`equipment-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <CheckboxListSection
+              title="Equipment Required"
+              options={equipmentOptions}
+              selectedValues={formData.equipmentRequired}
+              fieldName="equipmentRequired"
+              isEditing={isEditing}
+              onCheckboxListChange={handleCheckboxListChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="safety-checks">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Safety Checks</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Special education or competencies required</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyChecks.specialEducation.required}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "specialEducation", { ...formData.safetyChecks.specialEducation, required: !!checked })}
-                    disabled={!isEditing}
-                    id="special-education-required"
-                  />
-                  <label htmlFor="special-education-required" className="text-sm text-pharmacy-gray">
-                    Required
-                  </label>
-                </div>
-                {formData.safetyChecks.specialEducation.required && (
-                  <div className="mt-2">
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Description</label>
-                    <Textarea
-                      value={formData.safetyChecks.specialEducation.description || ""}
-                      onChange={(e) => handleNestedObjectChange("safetyChecks", "specialEducation", { ...formData.safetyChecks.specialEducation, description: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Visual verification required</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyChecks.verificationRequired}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "verificationRequired", !!checked)}
-                    disabled={!isEditing}
-                    id="verification-required"
-                  />
-                  <label htmlFor="verification-required" className="text-sm text-pharmacy-gray">
-                    Required
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Appropriate facilities/equipment available</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyChecks.equipmentAvailable}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "equipmentAvailable", !!checked)}
-                    disabled={!isEditing}
-                    id="equipment-available"
-                  />
-                  <label htmlFor="equipment-available" className="text-sm text-pharmacy-gray">
-                    Available
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Ventilation required</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyChecks.ventilationRequired}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyChecks", "ventilationRequired", !!checked)}
-                    disabled={!isEditing}
-                    id="ventilation-required"
-                  />
-                  <label htmlFor="ventilation-required" className="text-sm text-pharmacy-gray">
-                    Required
-                  </label>
-                </div>
-              </div>
-            </div>
+            <SafetyChecksSection
+              safetyChecks={formData.safetyChecks}
+              isEditing={isEditing}
+              onNestedObjectChange={handleNestedObjectChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="workflow-considerations">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Workflow Considerations</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Workflow uninterrupted</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.workflowConsiderations.uninterruptedWorkflow.status}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "uninterruptedWorkflow", { ...formData.workflowConsiderations.uninterruptedWorkflow, status: !!checked })}
-                    disabled={!isEditing}
-                    id="workflow-uninterrupted"
-                  />
-                  <label htmlFor="workflow-uninterrupted" className="text-sm text-pharmacy-gray">
-                    Uninterrupted
-                  </label>
-                </div>
-                {!formData.workflowConsiderations.uninterruptedWorkflow.status && (
-                  <div className="mt-2">
-                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Measures</label>
-                    <Textarea
-                      value={formData.workflowConsiderations.uninterruptedWorkflow.measures || ""}
-                      onChange={(e) => handleNestedObjectChange("workflowConsiderations", "uninterruptedWorkflow", { ...formData.workflowConsiderations.uninterruptedWorkflow, measures: e.target.value })}
-                      disabled={!isEditing}
-                      className="w-full"
-                    />
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Risk of microbial contamination</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.workflowConsiderations.microbialContaminationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "microbialContaminationRisk", !!checked)}
-                    disabled={!isEditing}
-                    id="microbial-contamination-risk"
-                  />
-                  <label htmlFor="microbial-contamination-risk" className="text-sm text-pharmacy-gray">
-                    Risk Present
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Risk of cross-contamination</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.workflowConsiderations.crossContaminationRisk}
-                    onCheckedChange={(checked) => handleNestedObjectChange("workflowConsiderations", "crossContaminationRisk", !!checked)}
-                    disabled={!isEditing}
-                    id="cross-contamination-risk"
-                  />
-                  <label htmlFor="cross-contamination-risk" className="text-sm text-pharmacy-gray">
-                    Risk Present
-                  </label>
-                </div>
-              </div>
-            </div>
+            <WorkflowConsiderationsSection
+              workflowConsiderations={formData.workflowConsiderations}
+              isEditing={isEditing}
+              onNestedObjectChange={handleNestedObjectChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="exposure-risks">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Exposure Risks</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {exposureRiskOptions.map((option) => (
-                <div key={option} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`exposure-${option}`}
-                    checked={formData.exposureRisks.includes(option)}
-                    onCheckedChange={(checked) => handleCheckboxListChange("exposureRisks", option, !!checked)}
-                    disabled={!isEditing}
-                  />
-                  <label htmlFor={`exposure-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {option}
-                  </label>
-                </div>
-              ))}
-            </div>
+            <CheckboxListSection
+              title="Exposure Risks"
+              options={exposureRiskOptions}
+              selectedValues={formData.exposureRisks}
+              fieldName="exposureRisks"
+              isEditing={isEditing}
+              onCheckboxListChange={handleCheckboxListChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="ppe">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Personal Protective Equipment (PPE)</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Gloves</label>
-                <Input
-                  type="text"
-                  value={formData.ppe.gloves}
-                  onChange={(e) => handlePPEChange("gloves", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Gown</label>
-                <Input
-                  type="text"
-                  value={formData.ppe.gown}
-                  onChange={(e) => handlePPEChange("gown", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Mask</label>
-                <Input
-                  type="text"
-                  value={formData.ppe.mask}
-                  onChange={(e) => handlePPEChange("mask", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Eye Protection Required</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.ppe.eyeProtection}
-                    onCheckedChange={(checked) => handlePPEChange("eyeProtection", !!checked)}
-                    disabled={!isEditing}
-                    id="eye-protection-required"
-                  />
-                  <label htmlFor="eye-protection-required" className="text-sm text-pharmacy-gray">
-                    Required
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Other PPE</label>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {otherPPEOptions.map((option) => (
-                    <div key={option} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`ppe-${option}`}
-                        checked={formData.ppe.otherPPE.includes(option)}
-                        onCheckedChange={(checked) => handleCheckboxListChange("ppe.otherPPE", option, !!checked)}
-                        disabled={!isEditing}
-                      />
-                      <label htmlFor={`ppe-${option}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                        {option}
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <PPESection
+              ppe={formData.ppe}
+              otherPPEOptions={otherPPEOptions}
+              isEditing={isEditing}
+              onPPEChange={handlePPEChange}
+              onCheckboxListChange={handleCheckboxListChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="safety-equipment">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Safety Equipment</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Eye wash station</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyEquipment.eyeWashStation}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "eyeWashStation", !!checked)}
-                    disabled={!isEditing}
-                    id="eye-wash-station"
-                  />
-                  <label htmlFor="eye-wash-station" className="text-sm text-pharmacy-gray">
-                    Available
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Safety shower</label>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    checked={formData.safetyEquipment.safetyShower}
-                    onCheckedChange={(checked) => handleNestedObjectChange("safetyEquipment", "safetyShower", !!checked)}
-                    disabled={!isEditing}
-                    id="safety-shower"
-                  />
-                  <label htmlFor="safety-shower" className="text-sm text-pharmacy-gray">
-                    Available
-                  </label>
-                </div>
-              </div>
-            </div>
+            <SafetyEquipmentSection
+              safetyEquipment={formData.safetyEquipment}
+              isEditing={isEditing}
+              onNestedObjectChange={handleNestedObjectChange}
+            />
           </AccordionContent>
         </AccordionItem>
 
         <AccordionItem value="risk-level">
           <AccordionTrigger className="font-medium text-pharmacy-darkBlue">Risk Level</AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Risk Level Assigned</label>
-                <Input
-                  type="text"
-                  value={formData.riskLevel}
-                  onChange={(e) => handleInputChange("riskLevel", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Rationale</label>
-                <Textarea
-                  value={formData.rationale}
-                  onChange={(e) => handleInputChange("rationale", e.target.value)}
-                  disabled={!isEditing}
-                  className="w-full"
-                />
-              </div>
-            </div>
+            <RiskLevelSection
+              riskLevel={formData.riskLevel}
+              rationale={formData.rationale}
+              isEditing={isEditing}
+              onInputChange={handleInputChange}
+            />
           </AccordionContent>
         </AccordionItem>
       </Accordion>
