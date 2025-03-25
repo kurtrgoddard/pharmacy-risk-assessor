@@ -238,32 +238,32 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
         preparationName: initialData.compoundName || "",
         
         complexityFactors: {
-          ...defaultRiskAssessment.complexityFactors,
-          multipleIngredients: initialData.activeIngredients.length > 1,
+          requiresCalculations: defaultRiskAssessment.complexityFactors.requiresCalculations,
           requiresSpecializedEquipment: initialData.equipmentRequired.length > 0,
-          requiresSpecializedKnowledge: initialData.safetyChecks?.specialEducation?.required || false
+          requiresSpecializedKnowledge: initialData.safetyChecks?.specialEducation?.required || false,
+          multipleIngredients: initialData.activeIngredients.length > 1,
+          difficultPreparationProcess: defaultRiskAssessment.complexityFactors.difficultPreparationProcess
         },
         
         hazardousFactors: {
-          ...defaultRiskAssessment.hazardousFactors,
           containsNIOSHIngredients: initialData.activeIngredients.some(
             ingredient => ingredient.nioshStatus?.isOnNioshList || false
           ),
+          containsWHMISIngredients: initialData.activeIngredients.some(
+            ingredient => ingredient.whmisHazards || false
+          ),
           reproductiveRisk: initialData.activeIngredients.some(
             ingredient => ingredient.reproductiveToxicity || false
-          ),
-          contactSensitizer: initialData.activeIngredients.some(
-            ingredient => 
-              (ingredient.sdsDescription || "").toLowerCase().includes("skin") ||
-              (ingredient.sdsDescription || "").toLowerCase().includes("sensitizer")
           ),
           respiratoryRisk: initialData.activeIngredients.some(
             ingredient => 
               (ingredient.sdsDescription || "").toLowerCase().includes("respiratory") ||
               (ingredient.sdsDescription || "").toLowerCase().includes("inhalation")
           ),
-          containsWHMISIngredients: initialData.activeIngredients.some(
-            ingredient => ingredient.whmisHazards || false
+          contactSensitizer: initialData.activeIngredients.some(
+            ingredient => 
+              (ingredient.sdsDescription || "").toLowerCase().includes("skin") ||
+              (ingredient.sdsDescription || "").toLowerCase().includes("sensitizer")
           )
         },
         
@@ -294,7 +294,13 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
             ...(initialData.ppe?.otherPPE || [])
           ].filter(item => item !== ""),
           otherControls: []
-        }
+        },
+        
+        assignedRiskLevel: defaultRiskAssessment.assignedRiskLevel,
+        riskJustification: defaultRiskAssessment.riskJustification,
+        preparedBy: defaultRiskAssessment.preparedBy,
+        reviewedBy: defaultRiskAssessment.reviewedBy,
+        dateAssessed: defaultRiskAssessment.dateAssessed
       };
       
       setAssessment(prepopulatedAssessment);
@@ -307,13 +313,23 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
     field: string, 
     value: any
   ) => {
-    setAssessment(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [field]: value
+    setAssessment(prev => {
+      const sectionData = prev[section];
+      if (typeof sectionData === 'object' && sectionData !== null) {
+        return {
+          ...prev,
+          [section]: {
+            ...sectionData,
+            [field]: value
+          }
+        };
       }
-    }));
+      // Handle primitive types
+      return {
+        ...prev,
+        [section]: value
+      };
+    });
   };
   
   // Handle nested form field changes
@@ -323,16 +339,25 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
     field: string, 
     value: any
   ) => {
-    setAssessment(prev => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        [nestedSection]: {
-          ...prev[section][nestedSection],
-          [field]: value
+    setAssessment(prev => {
+      const sectionData = prev[section];
+      if (typeof sectionData === 'object' && sectionData !== null) {
+        const nestedData = sectionData[nestedSection];
+        if (typeof nestedData === 'object' && nestedData !== null) {
+          return {
+            ...prev,
+            [section]: {
+              ...sectionData,
+              [nestedSection]: {
+                ...nestedData,
+                [field]: value
+              }
+            }
+          };
         }
       }
-    }));
+      return prev;
+    });
   };
   
   // Handle checkbox list changes
@@ -343,25 +368,31 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
     checked: boolean
   ) => {
     setAssessment(prev => {
-      // Safely access the array
-      const currentList = [...(prev[section][nestedSection] as string[])];
-      
-      if (checked && !currentList.includes(value)) {
-        currentList.push(value);
-      } else if (!checked) {
-        const index = currentList.indexOf(value);
-        if (index !== -1) {
-          currentList.splice(index, 1);
+      const sectionData = prev[section];
+      if (typeof sectionData === 'object' && sectionData !== null) {
+        const listArray = sectionData[nestedSection];
+        if (Array.isArray(listArray)) {
+          const newArray = [...listArray];
+          
+          if (checked && !newArray.includes(value)) {
+            newArray.push(value);
+          } else if (!checked) {
+            const index = newArray.indexOf(value);
+            if (index !== -1) {
+              newArray.splice(index, 1);
+            }
+          }
+          
+          return {
+            ...prev,
+            [section]: {
+              ...sectionData,
+              [nestedSection]: newArray
+            }
+          };
         }
       }
-      
-      return {
-        ...prev,
-        [section]: {
-          ...prev[section],
-          [nestedSection]: currentList
-        }
-      };
+      return prev;
     });
   };
   
