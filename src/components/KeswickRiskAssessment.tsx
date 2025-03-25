@@ -2,7 +2,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import PDFViewerWrapper from "./pdf/PDFViewerWrapper";
+import PDFViewerWrapper, { PDFDataProvider } from "./pdf/PDFViewerWrapper";
+import { PDFViewer } from "@/components";
 
 export interface ActiveIngredient {
   name: string;
@@ -86,7 +87,11 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
       </div>
       
       <div className="glass-card rounded-xl overflow-hidden p-4 mb-8">
-        <PDFViewerWrapper assessmentData={assessmentData} fileName={fileName} />
+        <PDFDataProvider assessmentData={assessmentData}>
+          {(pdfData) => (
+            <PDFViewer pdfData={pdfData} fileName={fileName} />
+          )}
+        </PDFDataProvider>
       </div>
 
       <div className="mt-8 flex justify-center">

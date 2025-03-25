@@ -14,6 +14,11 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfData, fileName }) => {
 
   const handleDownload = () => {
     try {
+      if (!pdfData) {
+        toast.error("No PDF data available to download");
+        return;
+      }
+      
       const link = document.createElement("a");
       link.href = pdfData;
       link.download = fileName || "risk-assessment.pdf";
