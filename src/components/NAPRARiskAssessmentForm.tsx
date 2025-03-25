@@ -693,7 +693,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="large" id="large-volume" />
-                        <Label htmlFor="large-volume">Large (>100 units/week or >1L/week)</Label>
+                        <Label htmlFor="large-volume">Large (&gt;100 units/week or &gt;1L/week)</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="medium" id="medium-volume" />
@@ -701,7 +701,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="small" id="small-volume" />
-                        <Label htmlFor="small-volume">Small (<25 units/week or <250mL/week)</Label>
+                        <Label htmlFor="small-volume">Small (&lt;25 units/week or &lt;250mL/week)</Label>
                       </div>
                     </RadioGroup>
                   </div>
@@ -758,7 +758,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                     >
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="prolonged" id="prolonged" />
-                        <Label htmlFor="prolonged">Prolonged (>1 hour per preparation)</Label>
+                        <Label htmlFor="prolonged">Prolonged (&gt;1 hour per preparation)</Label>
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="moderate" id="moderate" />
@@ -766,7 +766,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                       </div>
                       <div className="flex items-center space-x-2">
                         <RadioGroupItem value="minimal" id="minimal" />
-                        <Label htmlFor="minimal">Minimal (<15 minutes per preparation)</Label>
+                        <Label htmlFor="minimal">Minimal (&lt;15 minutes per preparation)</Label>
                       </div>
                     </RadioGroup>
                   </div>
