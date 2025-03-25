@@ -211,6 +211,14 @@ const ppeOptions = [
   "Shoe covers"
 ];
 
+// Helper function to safely convert string to valid frequency
+const mapToValidFrequency = (freq: string | undefined): "daily" | "weekly" | "monthly" | "rarely" => {
+  if (freq?.toLowerCase().includes("daily")) return "daily";
+  if (freq?.toLowerCase().includes("week")) return "weekly";
+  if (freq?.toLowerCase().includes("month")) return "monthly";
+  return "rarely";
+};
+
 const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
   initialData,
   onComplete,
@@ -222,7 +230,10 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
   // Pre-populate form with initial data if provided
   useEffect(() => {
     if (initialData) {
-      const prepopulatedAssessment = {
+      const frequencyPrep = mapToValidFrequency(initialData.preparationDetails?.frequency);
+      
+      // Create a type-safe prepopulated assessment
+      const prepopulatedAssessment: NAPRARiskAssessment = {
         ...defaultRiskAssessment,
         preparationName: initialData.compoundName || "",
         
@@ -236,31 +247,28 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
         hazardousFactors: {
           ...defaultRiskAssessment.hazardousFactors,
           containsNIOSHIngredients: initialData.activeIngredients.some(
-            ingredient => ingredient.nioshStatus?.isOnNioshList
+            ingredient => ingredient.nioshStatus?.isOnNioshList || false
           ),
           reproductiveRisk: initialData.activeIngredients.some(
-            ingredient => ingredient.reproductiveToxicity
+            ingredient => ingredient.reproductiveToxicity || false
           ),
           contactSensitizer: initialData.activeIngredients.some(
             ingredient => 
-              ingredient.sdsDescription.toLowerCase().includes("skin") ||
-              ingredient.sdsDescription.toLowerCase().includes("sensitizer")
+              (ingredient.sdsDescription || "").toLowerCase().includes("skin") ||
+              (ingredient.sdsDescription || "").toLowerCase().includes("sensitizer")
           ),
           respiratoryRisk: initialData.activeIngredients.some(
             ingredient => 
-              ingredient.sdsDescription.toLowerCase().includes("respiratory") ||
-              ingredient.sdsDescription.toLowerCase().includes("inhalation")
+              (ingredient.sdsDescription || "").toLowerCase().includes("respiratory") ||
+              (ingredient.sdsDescription || "").toLowerCase().includes("inhalation")
           ),
           containsWHMISIngredients: initialData.activeIngredients.some(
-            ingredient => ingredient.whmisHazards
+            ingredient => ingredient.whmisHazards || false
           )
         },
         
         frequencyVolume: {
-          frequencyOfPreparation: 
-            initialData.preparationDetails?.frequency?.toLowerCase().includes("daily") ? "daily" :
-            initialData.preparationDetails?.frequency?.toLowerCase().includes("week") ? "weekly" :
-            initialData.preparationDetails?.frequency?.toLowerCase().includes("month") ? "monthly" : "rarely",
+          frequencyOfPreparation: frequencyPrep,
           volumePreparation: "small" // Default to small, adjust based on quantity if available
         },
         
@@ -335,7 +343,8 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
     checked: boolean
   ) => {
     setAssessment(prev => {
-      const currentList = [...prev[section][nestedSection]];
+      // Safely access the array
+      const currentList = [...(prev[section][nestedSection] as string[])];
       
       if (checked && !currentList.includes(value)) {
         currentList.push(value);
