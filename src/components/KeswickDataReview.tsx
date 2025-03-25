@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect, useCallback } from "react";
-import { AlertTriangle, Check, Edit, Info } from "lucide-react";
+import { AlertTriangle, Check, Edit, Info, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { KeswickAssessmentData } from "./KeswickRiskAssessment";
-import { getNioshHazardInfo, getHazardLevel, getPPERecommendations, HazardLevel } from "@/utils/nioshData";
+import { getNioshHazardInfo, getHazardLevel, getPPERecommendations, HazardLevel, determineNAPRARiskLevel, generateNAPRARationale } from "@/utils/nioshData";
+import { Badge } from "@/components/ui/badge";
 
 // Import component sections
 import CompoundDetailsSection from "./review/CompoundDetailsSection";
@@ -71,19 +71,25 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       // Get recommended PPE based on the highest hazard level
       const recommendedPPE = getPPERecommendations(highestHazardLevel);
       
-      // Only auto-update PPE if there's a high or moderate hazard detected
-      if (highestHazardLevel !== "Non-Hazardous") {
-        setFormData(prev => ({
-          ...prev,
-          activeIngredients: updatedIngredients,
-          ppe: recommendedPPE
-        }));
-      } else {
-        setFormData(prev => ({
-          ...prev,
-          activeIngredients: updatedIngredients
-        }));
-      }
+      // Apply NAPRA risk assessment logic
+      const updatedFormData = {
+        ...formData,
+        activeIngredients: updatedIngredients,
+        ppe: highestHazardLevel !== "Non-Hazardous" ? recommendedPPE : formData.ppe
+      };
+      
+      // Determine NAPRA risk level using the decision algorithm
+      const napraRiskLevel = determineNAPRARiskLevel(updatedFormData) as any;
+      
+      // Generate rationale based on the determined risk level
+      const napraRationale = generateNAPRARationale(updatedFormData, napraRiskLevel);
+      
+      // Update the form data with the NAPRA risk assessment
+      setFormData({
+        ...updatedFormData,
+        riskLevel: napraRiskLevel,
+        rationale: napraRationale
+      });
     }
   }, [ingredientNames(), isEditing]);
   
@@ -99,7 +105,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       return;
     }
     
-    toast.success("Data validated successfully");
+    toast.success("Data validated successfully - NAPRA risk assessment completed");
     onDataValidated();
   };
   
@@ -116,6 +122,35 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   const handleCancel = () => {
     setFormData(extractedData);
     setIsEditing(false);
+  };
+  
+  // Helper function to render a risk level badge
+  const renderRiskLevelBadge = (riskLevel: string) => {
+    let icon, color;
+    
+    switch(riskLevel) {
+      case "Level A":
+        icon = <ShieldCheck className="w-4 h-4 mr-1" />;
+        color = "bg-green-100 text-green-800";
+        break;
+      case "Level B":
+        icon = <ShieldAlert className="w-4 h-4 mr-1" />;
+        color = "bg-yellow-100 text-yellow-800";
+        break;
+      case "Level C":
+        icon = <ShieldAlert className="w-4 h-4 mr-1" />;
+        color = "bg-red-100 text-red-800";
+        break;
+      default:
+        icon = <Info className="w-4 h-4 mr-1" />;
+        color = "bg-blue-100 text-blue-800";
+    }
+    
+    return (
+      <Badge className={`flex items-center ${color}`}>
+        {icon} {riskLevel}
+      </Badge>
+    );
   };
   
   // Fix for error TS2698: Spread types may only be created from object types
@@ -265,7 +300,14 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   return (
     <div className="w-full glass-card p-6 rounded-xl">
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-medium text-pharmacy-darkBlue">Keswick Risk Assessment Data</h3>
+        <div className="flex items-center">
+          <h3 className="text-lg font-medium text-pharmacy-darkBlue">NAPRA Risk Assessment Data</h3>
+          {formData.riskLevel && (
+            <div className="ml-3">
+              {renderRiskLevelBadge(formData.riskLevel)}
+            </div>
+          )}
+        </div>
         <div className="flex space-x-2">
           {isEditing ? (
             <>
@@ -305,16 +347,30 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
                 className="flex items-center text-xs bg-pharmacy-blue hover:bg-pharmacy-darkBlue"
               >
                 <Check className="w-4 h-4 mr-1" />
-                Validate Data
+                Validate NAPRA Assessment
               </Button>
             </>
           )}
         </div>
       </div>
       
-      <p className="text-sm text-pharmacy-gray mb-4">
-        Review the extracted information below and verify its accuracy before generating the final risk assessment document.
+      <p className="text-sm text-pharmacy-gray mb-2">
+        Review the extracted information and verify its accuracy before generating the NAPRA-compliant risk assessment document.
       </p>
+      
+      {!isEditing && formData.riskLevel && (
+        <div className="mb-4 p-4 rounded-lg border bg-gray-50">
+          <div className="flex items-start">
+            {formData.riskLevel === "Level A" && <ShieldCheck className="w-5 h-5 text-green-500 mr-2 flex-shrink-0" />}
+            {formData.riskLevel === "Level B" && <ShieldAlert className="w-5 h-5 text-yellow-500 mr-2 flex-shrink-0" />}
+            {formData.riskLevel === "Level C" && <ShieldAlert className="w-5 h-5 text-red-500 mr-2 flex-shrink-0" />}
+            <div>
+              <h4 className="text-sm font-medium text-pharmacy-darkBlue">NAPRA Risk Assessment: {formData.riskLevel}</h4>
+              <p className="text-xs text-pharmacy-gray mt-1">{formData.rationale}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="compound-details">

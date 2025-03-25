@@ -137,6 +137,54 @@ const styles = StyleSheet.create({
     left: 170,
     top: 400,
   },
+  napraHeading: {
+    textAlign: 'center',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#075985',
+  },
+  riskLevelBadge: {
+    padding: 4,
+    borderRadius: 4,
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginTop: 5,
+    marginBottom: 10,
+    display: 'flex',
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 'auto',
+    alignSelf: 'flex-start',
+  },
+  riskLevelA: {
+    backgroundColor: '#d1fae5',
+    color: '#065f46',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  riskLevelB: {
+    backgroundColor: '#fef3c7',
+    color: '#92400e',
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  riskLevelC: {
+    backgroundColor: '#fee2e2',
+    color: '#b91c1c',
+    borderWidth: 1,
+    borderColor: '#fecaca',
+  },
+  sectionTitle: {
+    backgroundColor: '#f3f4f6',
+    padding: 5,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#d1d5db',
+    color: '#1f2937',
+  },
 });
 
 // Register font
@@ -154,6 +202,19 @@ interface RiskAssessmentDocumentProps {
 
 const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessmentData }) => {
   const currentDate = new Date().toLocaleDateString();
+  
+  const getRiskLevelStyle = (riskLevel: string) => {
+    switch (riskLevel) {
+      case "Level A":
+        return styles.riskLevelA;
+      case "Level B":
+        return styles.riskLevelB;
+      case "Level C":
+        return styles.riskLevelC;
+      default:
+        return styles.riskLevelA;
+    }
+  };
   
   return (
     <Document>
@@ -176,15 +237,21 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.heading}>Risk Assessment for {assessmentData.compoundName || 'Compound'}</Text>
+          <Text style={styles.napraHeading}>NAPRA Compliant Risk Assessment</Text>
+          <Text style={styles.heading}>{assessmentData.compoundName || 'Compound'}</Text>
+          
+          <View style={[styles.riskLevelBadge, getRiskLevelStyle(assessmentData.riskLevel)]}>
+            <Text>Risk Level: {assessmentData.riskLevel}</Text>
+          </View>
+          
           <Text style={styles.paragraph}>
-            This document outlines the risk assessment for the compounding of {assessmentData.compoundName || 'Compound'},
-            in accordance with NAPRA and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
+            This document provides a comprehensive risk assessment for the compounding of {assessmentData.compoundName || 'this compound'},
+            in accordance with NAPRA standards and USP {'\u003C'}795{'\u003E'}/{'\u003C'}800{'\u003E'} guidelines.
           </Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Compound Details</Text>
+          <Text style={styles.sectionTitle}>1. Compound Identification</Text>
           <View style={styles.table}>
             <View style={styles.tableRow}>
               <View style={styles.tableColHeader}>
@@ -210,11 +277,24 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
                 <Text style={styles.tableCell}>{assessmentData.din || 'N/A'}</Text>
               </View>
             </View>
+            <View style={styles.tableRow}>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>Risk Level</Text>
+              </View>
+              <View style={styles.tableCol}>
+                <Text style={styles.tableCell}>{assessmentData.riskLevel}</Text>
+              </View>
+            </View>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Active Ingredients</Text>
+          <Text style={styles.sectionTitle}>2. Risk Assessment Rationale</Text>
+          <Text style={styles.paragraph}>{assessmentData.rationale || 'Not provided'}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>3. Active Ingredients & Hazard Classification</Text>
           {assessmentData.activeIngredients && assessmentData.activeIngredients.length > 0 ? 
             assessmentData.activeIngredients.map((ingredient, index) => (
               <View key={`ingredient-${index}`} style={styles.list}>
@@ -250,7 +330,7 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Preparation Details</Text>
+          <Text style={styles.sectionTitle}>4. Preparation Details</Text>
           <Text style={styles.paragraph}>
             Frequency of Preparation: {assessmentData.preparationDetails?.frequency || 'N/A'}
           </Text>
@@ -263,17 +343,16 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Physical Characteristics</Text>
+          <Text style={styles.sectionTitle}>5. Physical Characteristics & Equipment</Text>
+          <Text style={styles.subHeading}>Physical Characteristics:</Text>
           {assessmentData.physicalCharacteristics && assessmentData.physicalCharacteristics.length > 0 ? 
             assessmentData.physicalCharacteristics.map((characteristic, index) => (
               <Text key={`char-${index}`} style={styles.listItem}>- {characteristic}</Text>
             )) : 
             <Text style={styles.listItem}>No physical characteristics specified</Text>
           }
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.subHeading}>Equipment Required</Text>
+          
+          <Text style={styles.subHeading}>Equipment Required:</Text>
           {assessmentData.equipmentRequired && assessmentData.equipmentRequired.length > 0 ? 
             assessmentData.equipmentRequired.map((equipment, index) => (
               <Text key={`equip-${index}`} style={styles.listItem}>- {equipment}</Text>
@@ -283,7 +362,8 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Safety Checks</Text>
+          <Text style={styles.sectionTitle}>6. Safety Requirements (As per NAPRA Guidelines)</Text>
+          <Text style={styles.subHeading}>Training and Procedural Requirements:</Text>
           <Text style={styles.paragraph}>
             Special education or competencies required: {assessmentData.safetyChecks?.specialEducation?.required ? 'Yes' : 'No'}
             {assessmentData.safetyChecks?.specialEducation?.required &&
@@ -300,10 +380,8 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
           <Text style={styles.paragraph}>
             Ventilation required: {assessmentData.safetyChecks?.ventilationRequired ? 'Yes' : 'No'}
           </Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.subHeading}>Workflow Considerations</Text>
+          
+          <Text style={styles.subHeading}>Workflow Considerations:</Text>
           <Text style={styles.paragraph}>
             Workflow uninterrupted: {assessmentData.workflowConsiderations?.uninterruptedWorkflow?.status ? 'Yes' : 'No'}
             {!assessmentData.workflowConsiderations?.uninterruptedWorkflow?.status &&
@@ -317,10 +395,8 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
           <Text style={styles.paragraph}>
             Risk of cross-contamination: {assessmentData.workflowConsiderations?.crossContaminationRisk ? 'Yes' : 'No'}
           </Text>
-        </View>
 
-        <View style={styles.section}>
-          <Text style={styles.subHeading}>Exposure Risks</Text>
+          <Text style={styles.subHeading}>Exposure Risks:</Text>
           {assessmentData.exposureRisks && assessmentData.exposureRisks.length > 0 ? 
             assessmentData.exposureRisks.map((risk, index) => (
               <Text key={`risk-${index}`} style={styles.listItem}>- {risk}</Text>
@@ -330,7 +406,7 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Personal Protective Equipment (PPE)</Text>
+          <Text style={styles.sectionTitle}>7. Required Personal Protective Equipment (PPE)</Text>
           <Text style={styles.paragraph}>Gloves: {assessmentData.ppe?.gloves || 'N/A'}</Text>
           <Text style={styles.paragraph}>Gown: {assessmentData.ppe?.gown || 'N/A'}</Text>
           <Text style={styles.paragraph}>Mask: {assessmentData.ppe?.mask || 'N/A'}</Text>
@@ -339,15 +415,17 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.subHeading}>Safety Equipment</Text>
-          <Text style={styles.paragraph}>Eye wash station: {assessmentData.safetyEquipment?.eyeWashStation ? 'Yes' : 'No'}</Text>
-          <Text style={styles.paragraph}>Safety shower: {assessmentData.safetyEquipment?.safetyShower ? 'Yes' : 'No'}</Text>
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.subHeading}>Risk Level</Text>
-          <Text style={styles.paragraph}>Risk Level Assigned: {assessmentData.riskLevel || 'Not Assigned'}</Text>
-          <Text style={styles.paragraph}>Rationale: {assessmentData.rationale || 'Not Provided'}</Text>
+          <Text style={styles.sectionTitle}>8. Engineering Controls & Safety Equipment</Text>
+          <Text style={styles.paragraph}>Eye wash station: {assessmentData.safetyEquipment?.eyeWashStation ? 'Required' : 'Not Required'}</Text>
+          <Text style={styles.paragraph}>Safety shower: {assessmentData.safetyEquipment?.safetyShower ? 'Required' : 'Not Required'}</Text>
+          <Text style={styles.paragraph}>
+            {assessmentData.riskLevel === "Level C" ? 
+              "Containment Primary Engineering Control (C-PEC) required. Dedicated room with negative pressure required." : 
+              assessmentData.riskLevel === "Level B" ? 
+                "Ventilated engineering control recommended. Segregated compounding area required." : 
+                "Standard equipment adequate. Designated clean area required."
+            }
+          </Text>
         </View>
 
         {/* Signature section */}
@@ -363,7 +441,7 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         </View>
 
         <Text style={styles.footer}>
-          Keswick Pharmacy • This document is intended for internal use only and should not be distributed without permission.
+          Keswick Pharmacy • This document is NAPRA-compliant and intended for internal use only.
         </Text>
       </Page>
     </Document>

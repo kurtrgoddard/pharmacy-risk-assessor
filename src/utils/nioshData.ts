@@ -9,10 +9,11 @@ export interface NioshDrugInfo {
 }
 
 export type HazardLevel = "High Hazard" | "Moderate Hazard" | "Non-Hazardous";
+export type NAPRARiskLevel = "Level A" | "Level B" | "Level C";
 
 // Map drug names to their NIOSH classification data
 export const nioshDrugDatabase: Record<string, NioshDrugInfo> = {
-  // Table 1 - High Hazard Drugs
+  // Table 1 - High Hazard Drugs (NIOSH Group 1)
   "azathioprine": {
     table: "Table 1",
     hazardType: ["Carcinogenic (IARC Group 1)"],
@@ -33,6 +34,16 @@ export const nioshDrugDatabase: Record<string, NioshDrugInfo> = {
     hazardType: ["Reproductive toxicity", "Developmental hazard"],
     requiresSpecialHandling: true
   },
+  "tamoxifen": {
+    table: "Table 1",
+    hazardType: ["Carcinogenic", "Reproductive toxicity"],
+    requiresSpecialHandling: true
+  },
+  "methotrexate": {
+    table: "Table 1",
+    hazardType: ["Reproductive toxicity", "Developmental hazard"],
+    requiresSpecialHandling: true
+  },
   
   // Table 2 - Moderate/Specific Hazard Drugs
   "anastrozole": {
@@ -48,6 +59,16 @@ export const nioshDrugDatabase: Record<string, NioshDrugInfo> = {
   "misoprostol": {
     table: "Table 2",
     hazardType: ["Reproductive hazard", "Developmental hazard"],
+    requiresSpecialHandling: false
+  },
+  "finasteride": {
+    table: "Table 2",
+    hazardType: ["Reproductive hazard"],
+    requiresSpecialHandling: false
+  },
+  "spironolactone": {
+    table: "Table 2",
+    hazardType: ["Endocrine disruption"],
     requiresSpecialHandling: false
   },
   "ketoprofen": {
@@ -125,7 +146,7 @@ export const getPPERecommendations = (hazardLevel: HazardLevel) => {
       };
     case "Moderate Hazard":
       return {
-        gloves: "Regular",
+        gloves: "Double Regular",
         gown: "Designated Compounding Jacket",
         mask: "Surgical mask",
         eyeProtection: true,
@@ -139,5 +160,83 @@ export const getPPERecommendations = (hazardLevel: HazardLevel) => {
         eyeProtection: false,
         otherPPE: []
       };
+  }
+};
+
+// NAPRA Risk Assessment Decision Algorithm
+// This algorithm determines NAPRA risk level based on multiple factors
+export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => {
+  // Check for hazardous ingredients (NIOSH Table 1 - automatic Level C)
+  const hasTable1Hazards = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
+  );
+  
+  if (hasTable1Hazards) {
+    return "Level C";
+  }
+  
+  // Check for reproductive toxicity or WHMIS hazards (Level B or C)
+  const hasReproductiveToxicity = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.reproductiveToxicity
+  );
+  
+  const hasWHMISHazards = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.whmisHazards
+  );
+  
+  const hasTable2Hazards = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.nioshStatus?.table === "Table 2"
+  );
+  
+  if (hasReproductiveToxicity || (hasWHMISHazards && hasTable2Hazards)) {
+    return "Level B";
+  }
+  
+  // Check for complexity factors that may elevate to Level B
+  const complexityFactors = [
+    assessmentData.safetyChecks?.ventilationRequired,
+    assessmentData.workflowConsiderations?.microbialContaminationRisk,
+    assessmentData.workflowConsiderations?.crossContaminationRisk,
+    assessmentData.safetyChecks?.specialEducation?.required,
+    assessmentData.physicalCharacteristics?.includes("Powder")
+  ];
+  
+  const complexityScore = complexityFactors.filter(Boolean).length;
+  
+  if (complexityScore >= 2 || hasWHMISHazards) {
+    return "Level B";
+  }
+  
+  // Default to Level A for simple compounds
+  return "Level A";
+};
+
+// Generate rationale text based on NAPRA risk level assessment
+export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARiskLevel): string => {
+  const hazardousIngredients = assessmentData.activeIngredients
+    .filter((ingredient: any) => 
+      ingredient.nioshStatus?.table === "Table 1" || 
+      ingredient.nioshStatus?.table === "Table 2" ||
+      ingredient.reproductiveToxicity ||
+      ingredient.whmisHazards
+    )
+    .map((ingredient: any) => ingredient.name);
+  
+  switch (riskLevel) {
+    case "Level C":
+      return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "are" : "is"} classified as NIOSH Table 1 hazardous drug${hazardousIngredients.length > 1 ? "s" : ""}. According to NAPRA guidelines, this requires Level C precautions including a containment primary engineering control, dedicated room with negative pressure, and full PPE.`;
+    
+    case "Level B":
+      if (hazardousIngredients.length > 0) {
+        return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "have" : "has"} moderate hazard classifications. NAPRA guidelines require Level B precautions including proper ventilation, segregated compounding area, and appropriate PPE.`;
+      } else {
+        return `Based on the complexity factors (${assessmentData.physicalCharacteristics?.includes("Powder") ? "powder handling, " : ""}${assessmentData.safetyChecks?.ventilationRequired ? "ventilation requirements, " : ""}${assessmentData.workflowConsiderations?.microbialContaminationRisk ? "microbial contamination risk, " : ""}${assessmentData.workflowConsiderations?.crossContaminationRisk ? "cross-contamination risk, " : ""}${assessmentData.safetyChecks?.specialEducation?.required ? "special training required" : ""}), this compound requires Level B precautions according to NAPRA guidelines.`;
+      }
+    
+    case "Level A":
+      return "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding.";
+    
+    default:
+      return "Risk level rationale not available.";
   }
 };
