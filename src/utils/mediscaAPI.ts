@@ -1,4 +1,3 @@
-
 /**
  * Medisca SDS API Service
  * This service handles interactions with Medisca's publicly accessible SDS database
@@ -92,6 +91,48 @@ export const searchMediscaIngredient = async (searchTerm: string): Promise<strin
 const sdsCache: Record<string, SDSData> = {};
 
 /**
+ * Retrieves and parses SDS data for a specific ingredient
+ * @param ingredientName The name of the ingredient to retrieve SDS for
+ * @returns Promise with the parsed SDS data or null if unavailable
+ */
+export const getSdsData = async (ingredientName: string): Promise<SDSData | null> => {
+  // Normalize the ingredient name for consistent caching
+  const normalizedName = ingredientName.toLowerCase().trim();
+  
+  // Check if we have cached data for this ingredient
+  if (sdsCache[normalizedName]) {
+    console.log(`Using cached SDS data for ${ingredientName}`);
+    return sdsCache[normalizedName];
+  }
+  
+  try {
+    // For a real implementation, this would:
+    // 1. Fetch the PDF from Medisca
+    // 2. Parse the PDF to extract relevant data
+    // 3. Format the data according to our interface
+    
+    console.log(`Retrieving SDS data for ${ingredientName}`);
+    toast.info(`Retrieving SDS data for ${ingredientName}...`);
+    
+    // Simulate network delay
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    // Generate mock SDS data based on the ingredient name
+    const sdsData = generateMockSdsData(ingredientName);
+    
+    // Cache the result using the normalized name
+    sdsCache[normalizedName] = sdsData;
+    
+    toast.success(`SDS data retrieved for ${ingredientName}`);
+    return sdsData;
+  } catch (error) {
+    console.error(`Error retrieving SDS data for ${ingredientName}:`, error);
+    toast.error(`Failed to retrieve SDS data for ${ingredientName}`);
+    return null;
+  }
+};
+
+/**
  * SDS Data structure containing parsed safety information
  */
 export interface SDSData {
@@ -121,51 +162,11 @@ export const clearSdsCache = () => {
 };
 
 /**
- * Retrieves and parses SDS data for a specific ingredient
- * @param ingredientName The name of the ingredient to retrieve SDS for
- * @returns Promise with the parsed SDS data or null if unavailable
- */
-export const getSdsData = async (ingredientName: string): Promise<SDSData | null> => {
-  // Check if we have cached data for this ingredient
-  if (sdsCache[ingredientName.toLowerCase()]) {
-    console.log(`Using cached SDS data for ${ingredientName}`);
-    return sdsCache[ingredientName.toLowerCase()];
-  }
-  
-  try {
-    // For a real implementation, this would:
-    // 1. Fetch the PDF from Medisca
-    // 2. Parse the PDF to extract relevant data
-    // 3. Format the data according to our interface
-    
-    // For this demo, we'll simulate with mock data
-    console.log(`Retrieving SDS data for ${ingredientName}`);
-    toast.info(`Retrieving SDS data for ${ingredientName}...`);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Generate mock SDS data based on the ingredient name
-    const sdsData = generateMockSdsData(ingredientName);
-    
-    // Cache the result
-    sdsCache[ingredientName.toLowerCase()] = sdsData;
-    
-    toast.success(`SDS data retrieved for ${ingredientName}`);
-    return sdsData;
-  } catch (error) {
-    console.error(`Error retrieving SDS data for ${ingredientName}:`, error);
-    toast.error(`Failed to retrieve SDS data for ${ingredientName}`);
-    return null;
-  }
-};
-
-/**
  * Generates mock SDS data for demo purposes
  * In a real implementation, this would be replaced with actual PDF parsing
  */
 const generateMockSdsData = (ingredientName: string): SDSData => {
-  const lowerName = ingredientName.toLowerCase();
+  const lowerName = ingredientName.toLowerCase().trim();
   
   // Map known ingredients to specific mock data
   if (lowerName.includes("ketoprofen")) {
@@ -250,12 +251,14 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
       },
       recommendedPPE: {
         gloves: "Regular nitrile gloves",
-        respiratoryProtection: "Not required under normal conditions",
+        respiratoryProtection: "Dust mask recommended when handling powder, adequate ventilation required",
         eyeProtection: "Safety glasses recommended",
         bodyProtection: "Regular lab coat"
       },
-      exposureRisks: ["No significant risks under normal conditions"],
+      exposureRisks: ["Potential dust hazard if powdered form is handled without proper precautions", "Low systemic toxicity risk under normal handling conditions"],
       handlingPrecautions: [
+        "Use in well-ventilated area",
+        "Avoid generating and breathing dust",
         "Follow good laboratory practices",
         "Wash hands after handling",
         "Keep container closed when not in use"
@@ -268,18 +271,19 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
       ingredientName: ingredientName,
       physicalForm: "White or almost white crystalline powder",
       hazardClassification: {
-        ghs: ["Not classified as hazardous according to GHS"],
-        whmis: ["Not classified as hazardous according to WHMIS"]
+        ghs: ["Acute Toxicity (Oral) Category 4", "Specific Target Organ Toxicity - Single Exposure Category 3"],
+        whmis: ["Health Hazard", "Exclamation Mark"]
       },
       recommendedPPE: {
-        gloves: "Regular nitrile gloves",
-        respiratoryProtection: "Not required under normal conditions",
-        eyeProtection: "Safety glasses recommended",
-        bodyProtection: "Regular lab coat"
+        gloves: "Double nitrile gloves",
+        respiratoryProtection: "Dust mask when handling powder, adequate ventilation required",
+        eyeProtection: "Safety glasses with side shields",
+        bodyProtection: "Lab coat"
       },
-      exposureRisks: ["No significant risks under normal conditions"],
+      exposureRisks: ["Potential for respiratory irritation if inhaled", "May cause drowsiness or dizziness", "Powder inhalation hazard", "Controlled substance - special handling required"],
       handlingPrecautions: [
-        "Follow good laboratory practices",
+        "Use in well-ventilated area",
+        "Avoid generating and breathing dust",
         "Wash hands after handling",
         "Keep container closed when not in use",
         "Store according to controlled substance requirements"
@@ -292,17 +296,19 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
       ingredientName: ingredientName,
       physicalForm: "White to off-white crystalline powder",
       hazardClassification: {
-        ghs: ["Not classified as hazardous according to GHS"],
-        whmis: ["Not classified as hazardous according to WHMIS"]
+        ghs: ["Acute Toxicity (Oral) Category 4", "Specific Target Organ Toxicity - Single Exposure Category 3"],
+        whmis: ["Health Hazard", "Exclamation Mark"]
       },
       recommendedPPE: {
         gloves: "Regular nitrile gloves",
-        respiratoryProtection: "Not required under normal conditions",
+        respiratoryProtection: "Dust mask when handling powder, adequate ventilation required",
         eyeProtection: "Safety glasses recommended",
         bodyProtection: "Regular lab coat"
       },
-      exposureRisks: ["No significant risks under normal conditions"],
+      exposureRisks: ["May cause drowsiness or dizziness", "Powder inhalation hazard", "Low risk under normal handling conditions"],
       handlingPrecautions: [
+        "Use in well-ventilated area",
+        "Avoid generating and breathing dust",
         "Follow good laboratory practices",
         "Wash hands after handling",
         "Keep container closed when not in use"

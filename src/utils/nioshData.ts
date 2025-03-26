@@ -1,4 +1,3 @@
-
 // NIOSH 2024 List of Hazardous Drugs in Healthcare Settings
 // Publication No. 2025-103 (December 2024 edition)
 
@@ -203,7 +202,7 @@ export const getHazardLevelFromSDS = (sdsData: SDSData | null): HazardLevel => {
   // Check for moderate hazards
   const moderateHazardKeywords = [
     "irritation", "corrosion", "sensitizer", "toxic", "danger",
-    "flammable", "oxidizer", "category 2", "category 3"
+    "flammable", "oxidizer", "category 2", "category 3", "acute toxicity"
   ];
   
   const hasModerateHazard = sdsData.hazardClassification.ghs.some(
@@ -249,6 +248,16 @@ export const getCombinedHazardLevel = (
   }
   
   return "Non-Hazardous";
+};
+
+// Check if an ingredient is in powder form based on SDS data
+export const isPowderForm = (sdsData: SDSData | null): boolean => {
+  if (!sdsData || !sdsData.physicalForm) return false;
+  
+  const powderKeywords = ["powder", "crystalline", "granular", "dust", "solid"];
+  return powderKeywords.some(keyword => 
+    sdsData.physicalForm!.toLowerCase().includes(keyword)
+  );
 };
 
 // Get PPE recommendations based on hazard level
@@ -321,6 +330,8 @@ export const getPPERecommendations = (hazardLevel: HazardLevel, sdsData?: SDSDat
 // NAPRA Risk Assessment Decision Algorithm
 // This algorithm determines NAPRA risk level based on multiple factors
 export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => {
+  console.log("Running NAPRA risk level assessment with data:", assessmentData);
+  
   // Check for NIOSH Table 1 drugs - automatically Level C
   const hasTable1Hazards = assessmentData.activeIngredients.some(
     (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
@@ -398,13 +409,35 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     (ingredient: any) => ingredient.whmisHazards
   );
   
+  // Check for multi-ingredient compound (more complex)
+  const isMultiIngredient = assessmentData.activeIngredients.length > 1;
+  
   // Assessment of powder hazard (key complexity factor)
   const isPowderFormulation = assessmentData.physicalCharacteristics.some(
     (char: string) => char.toLowerCase().includes("powder")
   );
   
+  // Check if any ingredient is in powder form based on SDS data
+  const hasIngredientInPowderForm = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      if (ingredient.sdsData && ingredient.sdsData.physicalForm) {
+        return isPowderForm(ingredient.sdsData);
+      }
+      return false;
+    }
+  );
+  
+  // Combined powder assessment
+  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm;
+  
+  console.log("Powder assessment:", {
+    isPowderFormulation,
+    hasIngredientInPowderForm,
+    hasPowderRisk
+  });
+  
   // If has Table 2 drug or moderate SDS hazard AND is in powder form - escalate to Level C
-  if ((hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) && isPowderFormulation) {
+  if ((hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) && hasPowderRisk) {
     console.log("Level C assigned - Moderately hazardous drug in powder form");
     return "Level C";
   }
@@ -421,14 +454,20 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     assessmentData.workflowConsiderations?.microbialContaminationRisk,
     assessmentData.workflowConsiderations?.crossContaminationRisk,
     assessmentData.safetyChecks?.specialEducation?.required,
-    isPowderFormulation,
-    assessmentData.preparationDetails?.concentrationRisk
+    hasPowderRisk,
+    assessmentData.preparationDetails?.concentrationRisk,
+    isMultiIngredient  // Added multi-ingredient as a complexity factor
   ];
   
   const complexityScore = complexityFactors.filter(Boolean).length;
+  console.log("Complexity assessment:", {
+    complexityFactors,
+    complexityScore
+  });
   
-  if (complexityScore >= 2) {
-    console.log("Level B assigned - Multiple complexity factors present");
+  // If has multiple complexity factors or is in powder form, assign Level B
+  if (complexityScore >= 2 || hasPowderRisk) {
+    console.log("Level B assigned - Multiple complexity factors or powder form present");
     return "Level B";
   }
   
@@ -454,6 +493,22 @@ export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARisk
   const isPowderFormulation = assessmentData.physicalCharacteristics.some(
     (char: string) => char.toLowerCase().includes("powder")
   );
+  
+  // Check if any ingredient is in powder form
+  const hasIngredientInPowderForm = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      if (ingredient.sdsData && ingredient.sdsData.physicalForm) {
+        return isPowderForm(ingredient.sdsData);
+      }
+      return false;
+    }
+  );
+  
+  // Combined powder assessment
+  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm;
+  
+  // Check for multi-ingredient compound
+  const isMultiIngredient = assessmentData.activeIngredients.length > 1;
   
   // Build the rationale based on risk level and factors
   switch (riskLevel) {
@@ -490,6 +545,10 @@ export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARisk
     case "Level B":
       if (hazardousIngredients.length > 0) {
         return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "have" : "has"} moderate hazard classifications. NAPRA guidelines require Level B precautions including proper ventilation, segregated compounding area, and appropriate PPE.`;
+      } else if (hasPowderRisk) {
+        return `This compound involves handling ingredients in powder form, which presents potential exposure risks requiring additional precautions. According to NAPRA guidelines, powder formulations require Level B precautions including proper ventilation and appropriate PPE.`;
+      } else if (isMultiIngredient) {
+        return `This is a complex multi-ingredient preparation requiring additional handling precautions. According to NAPRA guidelines, these complexity factors necessitate Level B precautions including proper workspace setup and appropriate PPE.`;
       } else {
         // List specific complexity factors that led to Level B
         const factorsList = [];

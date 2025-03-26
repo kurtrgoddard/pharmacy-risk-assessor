@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, Fan, ArrowDown, AlertCircle } from "lucide-react";
 
 interface SafetyEquipment {
   eyeWashStation: boolean;
@@ -30,7 +30,7 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <AlertTriangle className="w-4 h-4 text-orange-500 mt-0.5 mr-2 flex-shrink-0" />
           <div className="text-sm text-orange-800">
             <p className="font-medium">Powder Hazard Detected</p>
-            <p className="text-xs mt-1">Handling hazardous powders requires additional safety equipment including a powder containment hood and proper ventilation.</p>
+            <p className="text-xs mt-1">Handling hazardous powders requires additional safety equipment including a powder containment hood and proper ventilation. These items have been automatically recommended below based on NAPRA guidelines.</p>
           </div>
         </div>
       )}
@@ -67,9 +67,13 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-pharmacy-gray mb-1">
+          <label className="flex items-center text-sm font-medium text-pharmacy-gray mb-1">
             Powder containment hood
-            {hasPowderHazard && <span className="text-orange-500 ml-1">*</span>}
+            {hasPowderHazard && (
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                Required
+              </span>
+            )}
           </label>
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -83,14 +87,21 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
             </label>
           </div>
           {hasPowderHazard && !safetyEquipment.powderContainmentHood && (
-            <p className="text-xs text-orange-600 mt-1">Required for hazardous powders</p>
+            <div className="flex items-center mt-1 text-xs text-orange-600">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              <span>Required for powder formulations per NAPRA/USP guidelines</span>
+            </div>
           )}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-pharmacy-gray mb-1">
+          <label className="flex items-center text-sm font-medium text-pharmacy-gray mb-1">
             Local exhaust ventilation
-            {hasPowderHazard && <span className="text-orange-500 ml-1">*</span>}
+            {hasPowderHazard && (
+              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                Required
+              </span>
+            )}
           </label>
           <div className="flex items-center space-x-2">
             <Checkbox
@@ -104,14 +115,26 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
             </label>
           </div>
           {hasPowderHazard && !safetyEquipment.localExhaustVentilation && (
-            <p className="text-xs text-orange-600 mt-1">Required for hazardous powders</p>
+            <div className="flex items-center mt-1 text-xs text-orange-600">
+              <AlertCircle className="w-3 h-3 mr-1" />
+              <span>Required for powder formulations per NAPRA/USP guidelines</span>
+            </div>
           )}
         </div>
       </div>
       
       {hasPowderHazard && (
-        <div className="mt-3 text-xs text-pharmacy-gray">
-          <span className="text-orange-500">*</span> Required safety equipment for handling hazardous powders
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md flex items-start">
+          <Fan className="w-4 h-4 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
+          <div className="text-xs text-blue-700">
+            <p className="font-medium">Ventilation Guidance for Powder Formulations</p>
+            <ul className="list-disc list-inside mt-1">
+              <li>Powder containment hood with HEPA filtration recommended for all powder ingredients</li>
+              <li>Dedicated ventilation system with negative pressure for hazardous powders</li>
+              <li>Regular verification of airflow and filtration systems</li>
+              <li>Separate area from other compounding activities when handling powders</li>
+            </ul>
+          </div>
         </div>
       )}
     </div>

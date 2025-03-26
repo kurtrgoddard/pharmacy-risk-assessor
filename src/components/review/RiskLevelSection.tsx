@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, ShieldAlert, Info, AlertTriangle } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Info, AlertTriangle, Fan, HardHat } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RiskLevelSectionProps {
@@ -82,10 +82,17 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
               <li>Moderate complexity with specific risk factors</li>
               <li>Segregated compounding area recommended</li>
               <li>Enhanced PPE (double gloves, gown, mask, eye protection)</li>
-              <li>Dedicated equipment and ventilation systems</li>
-              <li>Powder containment hood for powder formulations</li>
+              <li className="font-medium">Dedicated equipment and ventilation systems</li>
+              <li className="font-medium">Powder containment hood for powder formulations</li>
               <li>Special training for compounding personnel</li>
             </ul>
+            
+            <div className="mt-2 p-2 bg-yellow-100 rounded flex items-start">
+              <Fan className="w-4 h-4 text-yellow-700 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-yellow-800">
+                <span className="font-medium">Required Safety Equipment:</span> Proper ventilation systems and powder containment hood must be used for all powder formulations and multi-ingredient compounds.
+              </p>
+            </div>
           </div>
         );
       case "Level C":
@@ -95,12 +102,19 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <ul className="list-disc list-inside text-xs text-red-700">
               <li>Hazardous drugs (NIOSH Table 1) or complex preparations</li>
               <li>Dedicated room with negative pressure</li>
-              <li>Containment primary engineering control (C-PEC)</li>
+              <li className="font-medium">Containment primary engineering control (C-PEC)</li>
               <li>Full PPE (chemotherapy gloves, hazardous gown, N95 mask)</li>
               <li>Comprehensive decontamination protocols</li>
               <li>Special handling, storage, and disposal procedures</li>
               <li>Advanced certification and training requirements</li>
             </ul>
+            
+            <div className="mt-2 p-2 bg-red-100 rounded flex items-start">
+              <HardHat className="w-4 h-4 text-red-700 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-red-800">
+                <span className="font-medium">Critical Safety Alert:</span> All compounding must be performed in a containment hood with appropriate ventilation. Powder handling requires specialized containment equipment and rigorous procedures.
+              </p>
+            </div>
           </div>
         );
       default:
@@ -187,7 +201,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Risk Level Guidelines</h4>
             <ul className="list-disc list-inside text-xs text-pharmacy-gray">
               <li><span className="font-medium">Level A:</span> Simple preparations with minimal risk</li>
-              <li><span className="font-medium">Level B:</span> Moderate complexity requiring special precautions</li>
+              <li><span className="font-medium">Level B:</span> Moderate complexity, powder formulations, multi-ingredient compounds requiring special precautions</li>
               <li><span className="font-medium">Level C:</span> Complex/hazardous drugs (NIOSH Group 1 or WHMIS hazards)</li>
             </ul>
           </div>
