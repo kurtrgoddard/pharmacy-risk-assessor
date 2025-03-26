@@ -3,9 +3,10 @@ import React, { useState, useEffect } from "react";
 import { AlertTriangle, Info, Shield, ShieldAlert, ShieldCheck, FileDown, FileText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SDSData } from "@/utils/mediscaAPI";
+import { SDSData, openSdsDocument } from "@/utils/mediscaAPI";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
 
 interface SDSInfoSectionProps {
   ingredientName: string;
@@ -89,6 +90,15 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     );
   };
   
+  const handleViewSds = () => {
+    if (onViewSds) {
+      onViewSds();
+    } else {
+      // Use the updated function to open SDS in a new tab
+      openSdsDocument(ingredientName);
+    }
+  };
+  
   if (isLoading) {
     return (
       <div className="mt-4 border rounded-md p-4">
@@ -107,9 +117,20 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   if (!sdsData) {
     return (
       <div className="mt-4 border rounded-md p-4 bg-gray-50">
-        <div className="flex items-center text-sm text-gray-600">
-          <Info className="w-4 h-4 mr-2 text-blue-500" />
-          <span>SDS information not available for {ingredientName}</span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-600">
+            <Info className="w-4 h-4 mr-2 text-blue-500" />
+            <span>SDS information not available for {ingredientName}</span>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleViewSds}
+            className="text-xs"
+          >
+            <FileDown className="w-3 h-3 mr-1" />
+            Try View SDS
+          </Button>
         </div>
       </div>
     );
@@ -139,7 +160,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
             size="sm"
             onClick={(e) => {
               e.stopPropagation();
-              if (onViewSds) onViewSds();
+              handleViewSds();
             }}
             className="text-xs"
           >
@@ -236,3 +257,4 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
 };
 
 export default SDSInfoSection;
+

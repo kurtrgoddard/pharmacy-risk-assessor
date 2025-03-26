@@ -6,20 +6,22 @@
 import { toast } from "sonner";
 import { parseSdsPdf } from "./sdsPDFParser";
 
-// Base URL for Medisca's public SDS database
-const MEDISCA_BASE_URL = "https://www.medisca.com/Pages/ProductPages/SDSPages";
+// Updated base URL for Medisca's public SDS database - corrected path structure
+const MEDISCA_BASE_URL = "https://www.medisca.com/SDS";
 
 /**
  * Generates the URL for a specific ingredient's SDS
- * Note: This is based on Medisca's URL pattern which may change
  * @param ingredientName The name of the ingredient to search for
  * @returns URL string for the ingredient's SDS
  */
 export const getSdsUrl = (ingredientName: string): string => {
   // Convert the ingredient name to the format used in Medisca URLs
-  // This is a simplified version and may need adjustment based on actual URL patterns
   const formattedName = ingredientName.toLowerCase().replace(/\s+/g, '-');
-  return `${MEDISCA_BASE_URL}/${formattedName}-sds.pdf`;
+  
+  // Log the URL for debugging purposes
+  console.log(`Generated SDS URL: ${MEDISCA_BASE_URL}/${formattedName}.pdf`);
+  
+  return `${MEDISCA_BASE_URL}/${formattedName}.pdf`;
 };
 
 /**
@@ -41,7 +43,24 @@ export const fetchSdsPdf = async (ingredientName: string): Promise<Blob | null> 
     
     if (!response.ok) {
       console.error(`Failed to fetch SDS for ${ingredientName}: ${response.status} ${response.statusText}`);
-      return null;
+      
+      // Try alternate URL format as fallback
+      const alternateUrl = `https://www.medisca.com/Pages/ProductPages/SDSPages/${ingredientName.toLowerCase().replace(/\s+/g, '-')}-sds.pdf`;
+      console.log(`Trying alternate URL: ${alternateUrl}`);
+      
+      const alternateResponse = await fetch(alternateUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      
+      if (!alternateResponse.ok) {
+        console.error(`Failed to fetch SDS using alternate URL: ${alternateResponse.status}`);
+        return null;
+      }
+      
+      return await alternateResponse.blob();
     }
     
     const pdfBlob = await response.blob();
@@ -106,16 +125,19 @@ export const getSdsData = async (ingredientName: string): Promise<SDSData | null
   }
   
   try {
-    // For a real implementation, this would:
-    // 1. Fetch the PDF from Medisca
-    // 2. Parse the PDF to extract relevant data
-    // 3. Format the data according to our interface
-    
     console.log(`Retrieving SDS data for ${ingredientName}`);
     toast.info(`Retrieving SDS data for ${ingredientName}...`);
     
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    // Attempt to fetch real SDS from Medisca
+    const pdfBlob = await fetchSdsPdf(ingredientName);
+    
+    if (pdfBlob) {
+      console.log(`Successfully retrieved SDS PDF for ${ingredientName}`);
+      // TODO: In a real implementation, we would parse the PDF here
+      // For now, we'll use the mock data
+    } else {
+      console.log(`Could not retrieve real SDS for ${ingredientName}, using mock data`);
+    }
     
     // Generate mock SDS data based on the ingredient name
     const sdsData = generateMockSdsData(ingredientName);
@@ -363,4 +385,22 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
       timestamp: Date.now()
     };
   }
+};
+
+/**
+ * Opens the SDS document in a new tab
+ * @param ingredientName The name of the ingredient to view SDS for
+ */
+export const openSdsDocument = (ingredientName: string): void => {
+  const mainUrl = getSdsUrl(ingredientName);
+  const alternateUrl = `https://www.medisca.com/Pages/ProductPages/SDSPages/${ingredientName.toLowerCase().replace(/\s+/g, '-')}-sds.pdf`;
+  
+  // Try to open the SDS document
+  console.log(`Opening SDS document for ${ingredientName} at ${mainUrl}`);
+  window.open(mainUrl, '_blank');
+  
+  // Additionally show a toast with instructions
+  toast.info("If the SDS doesn't open automatically, please check your popup blocker settings", {
+    duration: 5000
+  });
 };

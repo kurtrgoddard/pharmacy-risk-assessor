@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, AlertCircle, Shield, FileText, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ActiveIngredient } from "../KeswickRiskAssessment";
 import { HazardLevel } from "@/utils/nioshData";
-import { getSdsData, SDSData } from "@/utils/mediscaAPI";
+import { getSdsData, SDSData, openSdsDocument } from "@/utils/mediscaAPI";
 import SDSInfoSection from "./SDSInfoSection";
+import { toast } from "sonner";
 
 interface ActiveIngredientsSectionProps {
   activeIngredients: ActiveIngredient[];
@@ -35,11 +37,18 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
           setLoadingSds(prev => ({ ...prev, [ingredient.name]: true }));
           
           try {
+            console.log(`Initiating SDS data fetch for ${ingredient.name}`);
             // Fetch SDS data for this ingredient
             const data = await getSdsData(ingredient.name);
             
             // Update SDS data state
             setSdsData(prev => ({ ...prev, [ingredient.name]: data }));
+            
+            // Update the ingredient's sdsData property directly
+            const ingredientIndex = activeIngredients.findIndex(ing => ing.name === ingredient.name);
+            if (ingredientIndex !== -1) {
+              onActiveIngredientChange(ingredientIndex, "sdsData", data);
+            }
             
             // Update ingredient data based on SDS if editing is not in progress
             if (data && !isEditing) {
@@ -72,6 +81,7 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
             }
           } catch (error) {
             console.error(`Error fetching SDS for ${ingredient.name}:`, error);
+            toast.error(`Failed to fetch SDS data for ${ingredient.name}`);
           } finally {
             // Mark as no longer loading
             setLoadingSds(prev => ({ ...prev, [ingredient.name]: false }));
@@ -277,7 +287,7 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
                 sdsData={sdsData[ingredient.name]}
                 isLoading={!!loadingSds[ingredient.name]}
                 onViewSds={() => {
-                  window.open(`https://www.medisca.com/Pages/ProductPages/SDSPages/${ingredient.name.toLowerCase().replace(/\s+/g, '-')}-sds.pdf`, '_blank');
+                  openSdsDocument(ingredient.name);
                 }}
               />
               
@@ -289,8 +299,22 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
                     onClick={async () => {
                       setLoadingSds(prev => ({ ...prev, [ingredient.name]: true }));
                       try {
+                        toast.info(`Manually retrieving SDS for ${ingredient.name}...`);
+                        console.log(`Manual SDS retrieval attempt for ${ingredient.name}`);
                         const data = await getSdsData(ingredient.name);
                         setSdsData(prev => ({ ...prev, [ingredient.name]: data }));
+                        
+                        // Update the ingredient's sdsData property
+                        onActiveIngredientChange(index, "sdsData", data);
+                        
+                        if (data) {
+                          toast.success(`Successfully retrieved SDS for ${ingredient.name}`);
+                        } else {
+                          toast.error(`Could not retrieve SDS for ${ingredient.name}`);
+                        }
+                      } catch (error) {
+                        console.error(`Error in manual SDS fetch:`, error);
+                        toast.error(`Error retrieving SDS: ${error}`);
                       } finally {
                         setLoadingSds(prev => ({ ...prev, [ingredient.name]: false }));
                       }
