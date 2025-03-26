@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, ShieldAlert, Info } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Info, AlertTriangle } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RiskLevelSectionProps {
   riskLevel: string;
@@ -58,10 +59,75 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
     }
   };
 
+  const renderRiskLevelDetails = (level: string) => {
+    switch (level) {
+      case "Level A":
+        return (
+          <div className="p-3 bg-green-50 border border-green-100 rounded-md mt-2">
+            <h4 className="text-sm font-medium text-green-800 mb-1">Level A Requirements</h4>
+            <ul className="list-disc list-inside text-xs text-green-700">
+              <li>Small-scale, simple preparations</li>
+              <li>Standard operating procedures</li>
+              <li>Basic PPE (gloves, mask, designated jacket)</li>
+              <li>Good airflow but no special ventilation needed</li>
+              <li>Regular compounding area with cleaning protocols</li>
+            </ul>
+          </div>
+        );
+      case "Level B":
+        return (
+          <div className="p-3 bg-yellow-50 border border-yellow-100 rounded-md mt-2">
+            <h4 className="text-sm font-medium text-yellow-800 mb-1">Level B Requirements</h4>
+            <ul className="list-disc list-inside text-xs text-yellow-700">
+              <li>Moderate complexity with specific risk factors</li>
+              <li>Segregated compounding area recommended</li>
+              <li>Enhanced PPE (double gloves, gown, mask, eye protection)</li>
+              <li>Dedicated equipment and ventilation systems</li>
+              <li>Powder containment hood for powder formulations</li>
+              <li>Special training for compounding personnel</li>
+            </ul>
+          </div>
+        );
+      case "Level C":
+        return (
+          <div className="p-3 bg-red-50 border border-red-100 rounded-md mt-2">
+            <h4 className="text-sm font-medium text-red-800 mb-1">Level C Requirements</h4>
+            <ul className="list-disc list-inside text-xs text-red-700">
+              <li>Hazardous drugs (NIOSH Table 1) or complex preparations</li>
+              <li>Dedicated room with negative pressure</li>
+              <li>Containment primary engineering control (C-PEC)</li>
+              <li>Full PPE (chemotherapy gloves, hazardous gown, N95 mask)</li>
+              <li>Comprehensive decontamination protocols</li>
+              <li>Special handling, storage, and disposal procedures</li>
+              <li>Advanced certification and training requirements</li>
+            </ul>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className="grid grid-cols-1 gap-4">
       <div>
-        <label className="block text-sm font-medium text-pharmacy-gray mb-1">Risk Level Assigned (NAPRA)</label>
+        <div className="flex items-center mb-1">
+          <label className="block text-sm font-medium text-pharmacy-gray">Risk Level Assigned (NAPRA)</label>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="ml-2 cursor-help">
+                  <Info className="h-4 w-4 text-pharmacy-blue" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md">
+                <p className="text-sm">Risk levels are assigned based on NAPRA guidelines considering ingredient hazards, 
+                preparation complexity, and required safety measures.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+        
         {isEditing ? (
           <Select 
             value={riskLevel} 
@@ -87,7 +153,25 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
       </div>
       
       <div className="mt-2">
-        <label className="block text-sm font-medium text-pharmacy-gray mb-1">Rationale (According to NAPRA Decision Algorithm)</label>
+        <div className="flex items-center mb-1">
+          <label className="block text-sm font-medium text-pharmacy-gray">Rationale (According to NAPRA Decision Algorithm)</label>
+          {!isEditing && riskLevel && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="ml-2 cursor-help">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-md">
+                  <p className="text-sm">This rationale explains why this compound received its risk level 
+                  classification based on ingredient hazards and preparation characteristics.</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+        
         <Textarea
           value={rationale}
           onChange={(e) => onInputChange("rationale", e.target.value)}
@@ -95,6 +179,8 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
           className="w-full min-h-[120px]"
           placeholder="Explain the reasoning for this risk level assignment based on NAPRA guidelines..."
         />
+        
+        {!isEditing && riskLevel && renderRiskLevelDetails(riskLevel)}
         
         {!isEditing && (
           <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">

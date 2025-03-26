@@ -1,3 +1,4 @@
+
 // NIOSH 2024 List of Hazardous Drugs in Healthcare Settings
 // Publication No. 2025-103 (December 2024 edition)
 
@@ -186,7 +187,11 @@ export const getHazardLevelFromSDS = (sdsData: SDSData | null): HazardLevel => {
   if (!sdsData) return "Non-Hazardous";
   
   // Check for high hazards in GHS classification
-  const highHazardKeywords = ["carcinogen", "mutagen", "reproductive", "toxic to reproduction"];
+  const highHazardKeywords = [
+    "carcinogen", "mutagen", "reproductive", "toxic to reproduction", 
+    "genetic defects", "fertility damage", "teratogenic", "category 1"
+  ];
+  
   const hasHighHazard = sdsData.hazardClassification.ghs.some(
     hazard => highHazardKeywords.some(keyword => hazard.toLowerCase().includes(keyword))
   );
@@ -196,7 +201,11 @@ export const getHazardLevelFromSDS = (sdsData: SDSData | null): HazardLevel => {
   }
   
   // Check for moderate hazards
-  const moderateHazardKeywords = ["irritation", "corrosion", "sensitizer", "toxic", "danger"];
+  const moderateHazardKeywords = [
+    "irritation", "corrosion", "sensitizer", "toxic", "danger",
+    "flammable", "oxidizer", "category 2", "category 3"
+  ];
+  
   const hasModerateHazard = sdsData.hazardClassification.ghs.some(
     hazard => moderateHazardKeywords.some(keyword => hazard.toLowerCase().includes(keyword))
   );
@@ -312,7 +321,17 @@ export const getPPERecommendations = (hazardLevel: HazardLevel, sdsData?: SDSDat
 // NAPRA Risk Assessment Decision Algorithm
 // This algorithm determines NAPRA risk level based on multiple factors
 export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => {
-  // Additional condition based on SDS hazard information
+  // Check for NIOSH Table 1 drugs - automatically Level C
+  const hasTable1Hazards = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
+  );
+  
+  if (hasTable1Hazards) {
+    console.log("Level C assigned - Contains NIOSH Table 1 drug");
+    return "Level C";
+  }
+  
+  // Check for high hazard from SDS data
   const hasHighSdsHazard = assessmentData.activeIngredients.some(
     (ingredient: any) => {
       if (ingredient.sdsData) {
@@ -324,19 +343,46 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   );
   
   if (hasHighSdsHazard) {
+    console.log("Level C assigned - Contains ingredient with high hazard SDS classification");
     return "Level C";
   }
   
-  // Check for hazardous ingredients (NIOSH Table 1 - automatic Level C)
-  const hasTable1Hazards = assessmentData.activeIngredients.some(
-    (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
+  // Check for reproductive toxicity - a key factor in Level C assignment
+  const hasReproductiveToxicity = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      // Check if ingredient is explicitly marked as having reproductive toxicity
+      if (ingredient.reproductiveToxicity) return true;
+      
+      // Check if NIOSH data indicates reproductive toxicity
+      if (ingredient.nioshStatus?.hazardType?.some(
+        (type: string) => type.toLowerCase().includes("reproductive")
+      )) {
+        return true;
+      }
+      
+      // Check SDS data for reproductive toxicity mentions
+      if (ingredient.sdsData) {
+        const reproKeywords = ["reproductive", "fertility", "teratogenic", "embryo", "fetus"];
+        return ingredient.sdsData.hazardClassification.ghs.some(
+          (hazard: string) => reproKeywords.some(keyword => hazard.toLowerCase().includes(keyword))
+        );
+      }
+      
+      return false;
+    }
   );
   
-  if (hasTable1Hazards) {
+  if (hasReproductiveToxicity) {
+    console.log("Level C assigned - Contains ingredient with reproductive toxicity");
     return "Level C";
   }
   
-  // Has moderate SDS hazard (Level B)
+  // Check for NIOSH Table 2 drugs - potential Level B
+  const hasTable2Hazards = assessmentData.activeIngredients.some(
+    (ingredient: any) => ingredient.nioshStatus?.table === "Table 2"
+  );
+  
+  // Check for moderate hazard SDS data
   const hasModSdsHazard = assessmentData.activeIngredients.some(
     (ingredient: any) => {
       if (ingredient.sdsData) {
@@ -347,62 +393,114 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     }
   );
   
-  // Check for reproductive toxicity or WHMIS hazards (Level B or C)
-  const hasReproductiveToxicity = assessmentData.activeIngredients.some(
-    (ingredient: any) => ingredient.reproductiveToxicity
-  );
-  
+  // Check for WHMIS hazards
   const hasWHMISHazards = assessmentData.activeIngredients.some(
     (ingredient: any) => ingredient.whmisHazards
   );
   
-  const hasTable2Hazards = assessmentData.activeIngredients.some(
-    (ingredient: any) => ingredient.nioshStatus?.table === "Table 2"
+  // Assessment of powder hazard (key complexity factor)
+  const isPowderFormulation = assessmentData.physicalCharacteristics.some(
+    (char: string) => char.toLowerCase().includes("powder")
   );
   
-  if (hasReproductiveToxicity || (hasWHMISHazards && hasTable2Hazards) || hasModSdsHazard) {
+  // If has Table 2 drug or moderate SDS hazard AND is in powder form - escalate to Level C
+  if ((hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) && isPowderFormulation) {
+    console.log("Level C assigned - Moderately hazardous drug in powder form");
+    return "Level C";
+  }
+  
+  // Level B assessment - based on hazard level and complexity factors
+  if (hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) {
+    console.log("Level B assigned - Contains moderate hazard ingredient");
     return "Level B";
   }
   
-  // Check for complexity factors that may elevate to Level B
+  // Check additional complexity factors that may elevate to Level B
   const complexityFactors = [
     assessmentData.safetyChecks?.ventilationRequired,
     assessmentData.workflowConsiderations?.microbialContaminationRisk,
     assessmentData.workflowConsiderations?.crossContaminationRisk,
     assessmentData.safetyChecks?.specialEducation?.required,
-    assessmentData.physicalCharacteristics?.includes("Powder")
+    isPowderFormulation,
+    assessmentData.preparationDetails?.concentrationRisk
   ];
   
   const complexityScore = complexityFactors.filter(Boolean).length;
   
-  if (complexityScore >= 2 || hasWHMISHazards) {
+  if (complexityScore >= 2) {
+    console.log("Level B assigned - Multiple complexity factors present");
     return "Level B";
   }
   
   // Default to Level A for simple compounds
+  console.log("Level A assigned - Simple preparation with minimal risk factors");
   return "Level A";
 };
 
 // Generate rationale text based on NAPRA risk level assessment
 export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARiskLevel): string => {
+  // Get hazardous ingredients
   const hazardousIngredients = assessmentData.activeIngredients
     .filter((ingredient: any) => 
       ingredient.nioshStatus?.table === "Table 1" || 
       ingredient.nioshStatus?.table === "Table 2" ||
       ingredient.reproductiveToxicity ||
-      ingredient.whmisHazards
+      ingredient.whmisHazards ||
+      (ingredient.sdsData && getHazardLevelFromSDS(ingredient.sdsData) !== "Non-Hazardous")
     )
     .map((ingredient: any) => ingredient.name);
   
+  // Get complexity factors
+  const isPowderFormulation = assessmentData.physicalCharacteristics.some(
+    (char: string) => char.toLowerCase().includes("powder")
+  );
+  
+  // Build the rationale based on risk level and factors
   switch (riskLevel) {
     case "Level C":
-      return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "are" : "is"} classified as NIOSH Table 1 hazardous drug${hazardousIngredients.length > 1 ? "s" : ""}. According to NAPRA guidelines, this requires Level C precautions including a containment primary engineering control, dedicated room with negative pressure, and full PPE.`;
+      // Check if Level C is due to NIOSH Table 1
+      const hasTable1Drugs = assessmentData.activeIngredients.some(
+        (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
+      );
+      
+      if (hasTable1Drugs) {
+        return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "are" : "is"} classified as NIOSH Table 1 hazardous drug${hazardousIngredients.length > 1 ? "s" : ""}. According to NAPRA guidelines, this requires Level C precautions including a containment primary engineering control, dedicated room with negative pressure, and full PPE.`;
+      }
+      
+      // Check if Level C is due to reproductive toxicity
+      const hasReproToxicity = assessmentData.activeIngredients.some(
+        (ingredient: any) => 
+          ingredient.reproductiveToxicity ||
+          ingredient.nioshStatus?.hazardType?.some(
+            (type: string) => type.toLowerCase().includes("reproductive")
+          )
+      );
+      
+      if (hasReproToxicity) {
+        return `This compound contains ingredient(s) with reproductive toxicity concerns. According to NAPRA guidelines, compounds with reproductive toxins require Level C precautions including containment primary engineering control and full PPE to prevent exposure risks.`;
+      }
+      
+      // Check if Level C is due to powder form of hazardous drug
+      if (isPowderFormulation && hazardousIngredients.length > 0) {
+        return `This compound involves handling hazardous materials (${hazardousIngredients.join(", ")}) in powder form, which presents significant exposure risks. According to NAPRA guidelines, this combination requires Level C precautions including proper containment, ventilation controls, and full PPE.`;
+      }
+      
+      return `Based on comprehensive hazard assessment, this compound requires Level C precautions due to significant risks associated with the ingredients and/or preparation process. This includes containment primary engineering control and full PPE according to NAPRA guidelines.`;
     
     case "Level B":
       if (hazardousIngredients.length > 0) {
         return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "have" : "has"} moderate hazard classifications. NAPRA guidelines require Level B precautions including proper ventilation, segregated compounding area, and appropriate PPE.`;
       } else {
-        return `Based on the complexity factors (${assessmentData.physicalCharacteristics?.includes("Powder") ? "powder handling, " : ""}${assessmentData.safetyChecks?.ventilationRequired ? "ventilation requirements, " : ""}${assessmentData.workflowConsiderations?.microbialContaminationRisk ? "microbial contamination risk, " : ""}${assessmentData.workflowConsiderations?.crossContaminationRisk ? "cross-contamination risk, " : ""}${assessmentData.safetyChecks?.specialEducation?.required ? "special training required" : ""}), this compound requires Level B precautions according to NAPRA guidelines.`;
+        // List specific complexity factors that led to Level B
+        const factorsList = [];
+        if (isPowderFormulation) factorsList.push("powder handling");
+        if (assessmentData.safetyChecks?.ventilationRequired) factorsList.push("ventilation requirements");
+        if (assessmentData.workflowConsiderations?.microbialContaminationRisk) factorsList.push("microbial contamination risk");
+        if (assessmentData.workflowConsiderations?.crossContaminationRisk) factorsList.push("cross-contamination risk");
+        if (assessmentData.safetyChecks?.specialEducation?.required) factorsList.push("special training required");
+        if (assessmentData.preparationDetails?.concentrationRisk) factorsList.push("concentration sensitivity");
+        
+        return `Based on the complexity factors (${factorsList.join(", ")}), this compound requires Level B precautions according to NAPRA guidelines. This includes enhanced engineering controls, ventilation, and appropriate PPE.`;
       }
     
     case "Level A":
