@@ -66,8 +66,10 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
   };
 
   const validateAndSetFile = async (file: File) => {
+    // Reset everything before processing new file
     setError(null);
     setIsLoading(true);
+    setSelectedFile(null);
     
     try {
       // Check if file is PDF
@@ -89,8 +91,11 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
       // Extract text from PDF
       const extractedText = await extractTextFromPDF(file);
       
-      setSelectedFile(file);
-      onFileUploaded(file, extractedText);
+      // Add the extracted text to the file object for later use
+      const fileWithText = Object.assign(file, { extractedText });
+      
+      setSelectedFile(fileWithText);
+      onFileUploaded(fileWithText, extractedText);
       toast.success("File processed successfully");
     } catch (error) {
       console.error("Error processing file:", error);

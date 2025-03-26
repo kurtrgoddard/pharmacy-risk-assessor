@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { AlertTriangle, Check, Edit, Info, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -29,21 +30,33 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   onDataValidated,
   onDataUpdated
 }) => {
+  // Initialize state with the provided extracted data to ensure fresh data
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<KeswickAssessmentData>(extractedData);
+  
+  // Force update form data when extractedData changes (new upload)
+  useEffect(() => {
+    console.log("Received new extracted data:", extractedData);
+    setFormData(extractedData);
+    setIsEditing(false);
+  }, [extractedData]);
   
   // Get list of ingredient names for dependency tracking
   const ingredientNames = useCallback(() => 
     formData.activeIngredients.map(i => i.name),
   [formData.activeIngredients]);
   
-  // Auto-detect NIOSH hazard information on initial load and when ingredients change
+  // Auto-detect NIOSH hazard information when ingredients change
   useEffect(() => {
     if (!isEditing) {
+      console.log("Analyzing ingredients for hazards:", ingredientNames());
+      
       const updatedIngredients = formData.activeIngredients.map(ingredient => {
         // Get NIOSH hazard information for this ingredient
         const nioshInfo = getNioshHazardInfo(ingredient.name);
         const hazardLevel = getHazardLevel(nioshInfo);
+        
+        console.log(`Ingredient ${ingredient.name} - NIOSH info:`, nioshInfo, "Hazard level:", hazardLevel);
         
         // Update nioshStatus based on the lookup
         const updatedIngredient = {
@@ -68,6 +81,8 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
         return highest;
       }, "Non-Hazardous");
       
+      console.log("Highest hazard level detected:", highestHazardLevel);
+      
       // Get recommended PPE based on the highest hazard level
       const recommendedPPE = getPPERecommendations(highestHazardLevel);
       
@@ -83,6 +98,8 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       
       // Generate rationale based on the determined risk level
       const napraRationale = generateNAPRARationale(updatedFormData, napraRiskLevel);
+      
+      console.log("NAPRA Risk Level:", napraRiskLevel, "Rationale:", napraRationale);
       
       // Update the form data with the NAPRA risk assessment
       setFormData({

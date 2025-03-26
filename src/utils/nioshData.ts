@@ -71,7 +71,49 @@ export const nioshDrugDatabase: Record<string, NioshDrugInfo> = {
     hazardType: ["Endocrine disruption"],
     requiresSpecialHandling: false
   },
+  
+  // Non-hazardous drugs per NIOSH (explicitly set to ensure correct classification)
   "ketoprofen": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "gabapentin": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "ketamine": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "baclofen": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "clonidine": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "lidocaine": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "prilocaine": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "amitriptyline": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
+  },
+  "diclofenac": {
     table: null,
     hazardType: [],
     requiresSpecialHandling: false
@@ -90,11 +132,13 @@ export const removedHazardousDrugs = [
 
 // Helper function to look up drug hazard information
 export const getNioshHazardInfo = (drugName: string): NioshDrugInfo => {
-  // Convert drug name to lowercase for case-insensitive matching
+  // Clear any extra spaces and normalize to lowercase for case-insensitive matching
   const normalizedName = drugName.toLowerCase().trim();
+  console.log(`Looking up NIOSH info for: "${normalizedName}"`);
   
   // Check if the drug is explicitly marked as removed from hazardous list
   if (removedHazardousDrugs.some(drug => normalizedName.includes(drug.toLowerCase()))) {
+    console.log(`${normalizedName} is on the removed hazardous drugs list`);
     return {
       table: null,
       hazardType: [],
@@ -104,17 +148,20 @@ export const getNioshHazardInfo = (drugName: string): NioshDrugInfo => {
   
   // Look for exact match first
   if (nioshDrugDatabase[normalizedName]) {
+    console.log(`Found exact match for ${normalizedName}`);
     return nioshDrugDatabase[normalizedName];
   }
   
-  // Look for partial matches (ingredient might be part of a longer name)
+  // Look for matches in the database keys
   for (const [key, value] of Object.entries(nioshDrugDatabase)) {
     if (normalizedName.includes(key) || key.includes(normalizedName)) {
+      console.log(`Found partial match: ${normalizedName} matches with ${key}`);
       return value;
     }
   }
   
-  // Return non-hazardous if no match found
+  // If no match found, log this and return non-hazardous
+  console.log(`No NIOSH match found for ${normalizedName}, classifying as non-hazardous`);
   return {
     table: null,
     hazardType: [],

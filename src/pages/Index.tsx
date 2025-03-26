@@ -7,7 +7,7 @@ import KeswickDataReview from '@/components/KeswickDataReview';
 import KeswickRiskAssessment, { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
 
 // This would be replaced with actual PDF processing in production
-const mockProcessDocument = async (file: File): Promise<{
+const mockProcessDocument = async (file: File, extractedText?: string): Promise<{
   assessmentData: KeswickAssessmentData;
   pdfData: string;
 }> => {
@@ -17,84 +17,122 @@ const mockProcessDocument = async (file: File): Promise<{
       // Mock data URL
       const fileURL = URL.createObjectURL(file);
       
-      // Mock assessment data
-      const assessmentData: KeswickAssessmentData = {
-        compoundName: "Sample Ketoprofen 10% in PLO Gel",
-        din: "N/A (Compounded product)",
-        activeIngredients: [
-          { 
-            name: "Ketoprofen", 
-            manufacturer: "PCCA",
+      // Parse ingredients from the extracted text
+      let detectedIngredients = [];
+      
+      // If we have extracted text, try to detect ingredients
+      if (extractedText) {
+        console.log("Analyzing extracted text for ingredients...");
+        
+        // Check for common compounding ingredients in the text
+        const possibleIngredients = [
+          "Ketoprofen", "Estradiol", "Gabapentin", "Ketamine", 
+          "Baclofen", "Clonidine", "Diclofenac", "Amitriptyline", 
+          "Lidocaine", "Prilocaine"
+        ];
+        
+        detectedIngredients = possibleIngredients.filter(ingredient => 
+          extractedText.toLowerCase().includes(ingredient.toLowerCase())
+        ).map(name => {
+          // Create ingredient object with default values
+          return {
+            name,
+            manufacturer: "Unknown",
             nioshStatus: {
               isOnNioshList: false,
               hazardLevel: "Non-Hazardous",
               hazardType: []
             },
             reproductiveToxicity: false,
-            whmisHazards: true,
-            sdsDescription: "Causes serious eye irritation. May cause respiratory irritation.",
-            monographWarnings: "Contraindicated in patients with hypersensitivity to ketoprofen or other NSAIDs."
-          },
-          { 
-            name: "Estradiol", 
-            manufacturer: "Medisca",
+            whmisHazards: false,
+            sdsDescription: "",
+            monographWarnings: ""
+          };
+        });
+        
+        // If no ingredients were detected, add a placeholder
+        if (detectedIngredients.length === 0) {
+          detectedIngredients = [{
+            name: "Unknown Ingredient",
+            manufacturer: "Please specify",
             nioshStatus: {
-              isOnNioshList: true,
-              table: "Table 1",
-              hazardLevel: "High Hazard",
-              hazardType: ["Reproductive toxicity", "Developmental hazard"]
+              isOnNioshList: false,
+              hazardLevel: "Non-Hazardous",
+              hazardType: []
             },
-            reproductiveToxicity: true,
-            whmisHazards: true,
-            sdsDescription: "May damage fertility or the unborn child. May cause harm to breast-fed children.",
-            monographWarnings: "Estrogens with or without progestins should not be used for the prevention of cardiovascular disease or dementia."
-          }
-        ],
+            reproductiveToxicity: false,
+            whmisHazards: false,
+            sdsDescription: "",
+            monographWarnings: ""
+          }];
+        }
+      } else {
+        // Fallback if no text was extracted
+        detectedIngredients = [{
+          name: "Unknown Ingredient",
+          manufacturer: "Please specify",
+          nioshStatus: {
+            isOnNioshList: false,
+            hazardLevel: "Non-Hazardous",
+            hazardType: []
+          },
+          reproductiveToxicity: false,
+          whmisHazards: false,
+          sdsDescription: "",
+          monographWarnings: ""
+        }];
+      }
+      
+      // Create fresh assessment data based on the detected ingredients
+      const assessmentData: KeswickAssessmentData = {
+        compoundName: file.name.replace('.pdf', '').replace(/_/g, ' '),
+        din: "N/A (Compounded product)",
+        activeIngredients: detectedIngredients,
         preparationDetails: {
-          frequency: "Weekly",
+          frequency: "As needed",
           quantity: "100g",
           concentrationRisk: false
         },
-        physicalCharacteristics: ["Semi-Solid", "Cream/Ointment"],
-        equipmentRequired: ["Balance", "Ointment Mill"],
+        physicalCharacteristics: ["Semi-Solid"],
+        equipmentRequired: ["Balance"],
         safetyChecks: {
           specialEducation: {
-            required: true,
-            description: "Training on handling hormonal compounds required"
+            required: false,
+            description: ""
           },
           verificationRequired: true,
           equipmentAvailable: true,
-          ventilationRequired: true
+          ventilationRequired: false
         },
         workflowConsiderations: {
           uninterruptedWorkflow: {
             status: false,
-            measures: "Compound during slow periods, use 'Do Not Disturb' signage"
+            measures: ""
           },
-          microbialContaminationRisk: true,
-          crossContaminationRisk: true
+          microbialContaminationRisk: false,
+          crossContaminationRisk: false
         },
-        exposureRisks: ["Skin", "Eye"],
+        exposureRisks: ["Skin"],
         ppe: {
-          gloves: "Chemotherapy",
-          gown: "Disposable Hazardous Gown",
-          mask: "N95",
-          eyeProtection: true,
-          otherPPE: ["Head covers"]
+          gloves: "Regular",
+          gown: "Designated Compounding Jacket",
+          mask: "Surgical mask",
+          eyeProtection: false,
+          otherPPE: []
         },
         safetyEquipment: {
           eyeWashStation: true,
           safetyShower: false
         },
-        riskLevel: "Level B",
-        rationale: "Contains estradiol which is on NIOSH Table 1 as a hazardous drug with reproductive risks. Requires additional precautions including chemotherapy gloves, gown, and ventilation."
+        riskLevel: "Level A",
+        rationale: "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding."
       };
       
       resolve({
         assessmentData,
         pdfData: fileURL
       });
-    }, 3000);
+    }, 2000);
   });
 };
 
@@ -136,11 +174,13 @@ const Index = () => {
   }, [isProcessing, processingSteps]);
 
   const handleFileUploaded = (uploadedFile: File, extractedText?: string) => {
+    // Completely reset all state before processing the new file
     setFile(uploadedFile);
     setAssessmentPDF(null);
     setAssessmentGenerated(false);
     setExtractedData(null);
     setIsDataValidated(false);
+    setCurrentStep(0);
     
     // Log extracted text for debugging
     if (extractedText) {
@@ -148,6 +188,8 @@ const Index = () => {
       // Here you could implement logic to parse the extractedText
       // and pre-populate the form data based on the PDF content
     }
+    
+    toast.success("File uploaded successfully, processing content...");
   };
 
   const handleGenerateDocuments = async () => {
@@ -161,8 +203,12 @@ const Index = () => {
       setCurrentStep(0);
       setLoadingMessage(processingSteps[0]);
       
+      // Get text that was extracted from the PDF during upload
+      const extractedText = file.extractedText || "";
+      
       // In a real implementation, this would call an API to process the PDF
-      const { assessmentData, pdfData } = await mockProcessDocument(file);
+      // Pass the extracted text to ensure we're working with current data
+      const { assessmentData, pdfData } = await mockProcessDocument(file, extractedText);
       
       setAssessmentPDF(pdfData);
       setExtractedData(assessmentData);
