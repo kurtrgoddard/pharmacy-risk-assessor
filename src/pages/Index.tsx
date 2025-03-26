@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator } from '@/components';
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Info } from "lucide-react";
 import KeswickDataReview from '@/components/KeswickDataReview';
 import KeswickRiskAssessment, { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
+import { getSdsData, clearSdsCache } from '@/utils/mediscaAPI';
 
 // This would be replaced with actual PDF processing in production
 const mockProcessDocument = async (file: File, extractedText?: string): Promise<{
@@ -13,7 +15,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
 }> => {
   // Simulate network delay and processing
   return new Promise((resolve) => {
-    setTimeout(() => {
+    setTimeout(async () => {
       // Mock data URL
       const fileURL = URL.createObjectURL(file);
       
@@ -33,22 +35,43 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         
         detectedIngredients = possibleIngredients.filter(ingredient => 
           extractedText.toLowerCase().includes(ingredient.toLowerCase())
-        ).map(name => {
-          // Create ingredient object with default values
+        ).map(async (name) => {
+          // Fetch SDS data for this ingredient
+          const sdsData = await getSdsData(name);
+          
+          // Determine if the ingredient has WHMIS hazards based on SDS
+          const hasWhmisHazards = sdsData ? 
+            sdsData.hazardClassification.whmis.some(h => !h.toLowerCase().includes("not classified")) : 
+            false;
+          
+          // Determine if the ingredient has reproductive toxicity based on SDS
+          const hasReproToxicity = sdsData ? 
+            sdsData.hazardClassification.ghs.some(h => h.toLowerCase().includes("reproductive")) : 
+            false;
+          
+          // Extract SDS description from exposure risks
+          const sdsDescription = sdsData ? 
+            sdsData.exposureRisks.join("; ") : 
+            "";
+          
+          // Create ingredient object with values based on SDS
           return {
             name,
-            manufacturer: "Unknown",
+            manufacturer: "Medisca",
             nioshStatus: {
               isOnNioshList: false,
               hazardLevel: "Non-Hazardous",
               hazardType: []
             },
-            reproductiveToxicity: false,
-            whmisHazards: false,
-            sdsDescription: "",
+            reproductiveToxicity: hasReproToxicity,
+            whmisHazards: hasWhmisHazards,
+            sdsDescription: sdsDescription,
             monographWarnings: ""
           };
         });
+        
+        // Wait for all ingredient SDS data to be fetched
+        detectedIngredients = await Promise.all(detectedIngredients);
         
         // If no ingredients were detected, add a placeholder
         if (detectedIngredients.length === 0) {
@@ -146,6 +169,7 @@ const Index = () => {
   const [processingSteps, setProcessingSteps] = useState<string[]>([
     "Analyzing document content",
     "Extracting compound information",
+    "Querying Medisca SDS database",
     "Identifying NIOSH hazards",
     "Assessing safety parameters",
     "Generating risk assessment",
@@ -181,6 +205,9 @@ const Index = () => {
     setExtractedData(null);
     setIsDataValidated(false);
     setCurrentStep(0);
+    
+    // Clear SDS cache for the new upload
+    clearSdsCache();
     
     // Log extracted text for debugging
     if (extractedText) {
@@ -230,6 +257,7 @@ const Index = () => {
     setExtractedData(null);
     setIsProcessing(false);
     setIsDataValidated(false);
+    clearSdsCache();
   };
   
   const handleDataValidated = () => {
@@ -260,7 +288,7 @@ const Index = () => {
                 Compound Formula Document Generator
               </h1>
               <p className="text-pharmacy-gray max-w-2xl mx-auto">
-                Upload technical PDF documents about pharmaceutical compounds and automatically generate NAPRA-compliant risk assessments.
+                Upload technical PDF documents about pharmaceutical compounds and automatically generate NAPRA-compliant risk assessments with integrated Medisca SDS data.
               </p>
             </div>
 
@@ -295,7 +323,7 @@ const Index = () => {
                         <span className="text-pharmacy-blue font-medium">2</span>
                       </div>
                       <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">AI Processing</h4>
-                      <p className="text-xs text-pharmacy-gray">Our system analyzes the content, extracts key information, and identifies hazards</p>
+                      <p className="text-xs text-pharmacy-gray">Our system analyzes the content, retrieves SDS data, and identifies hazards</p>
                     </div>
                     <div className="bg-white/50 rounded-lg p-4 text-center">
                       <div className="w-8 h-8 bg-pharmacy-blue/10 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -316,7 +344,7 @@ const Index = () => {
                 Review Extracted Information
               </h2>
               <p className="text-pharmacy-gray">
-                Please review and validate the information extracted from your PDF
+                Please review and validate the information extracted from your PDF and Medisca SDS database
               </p>
             </div>
 

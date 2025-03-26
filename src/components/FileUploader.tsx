@@ -3,6 +3,7 @@ import React, { useState, useRef } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import * as pdfjsLib from "pdfjs-dist";
+import { clearSdsCache } from "@/utils/mediscaAPI";
 
 // Set the worker source path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -70,6 +71,9 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
     setError(null);
     setIsLoading(true);
     setSelectedFile(null);
+    
+    // Clear SDS cache when a new file is uploaded
+    clearSdsCache();
     
     try {
       // Check if file is PDF

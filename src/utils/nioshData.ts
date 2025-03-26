@@ -1,6 +1,7 @@
-
 // NIOSH 2024 List of Hazardous Drugs in Healthcare Settings
 // Publication No. 2025-103 (December 2024 edition)
+
+import { SDSData } from "./mediscaAPI";
 
 export interface NioshDrugInfo {
   table: "Table 1" | "Table 2" | null;
@@ -180,27 +181,100 @@ export const getHazardLevel = (drugInfo: NioshDrugInfo): HazardLevel => {
   }
 };
 
+// Get hazard level based on SDS data
+export const getHazardLevelFromSDS = (sdsData: SDSData | null): HazardLevel => {
+  if (!sdsData) return "Non-Hazardous";
+  
+  // Check for high hazards in GHS classification
+  const highHazardKeywords = ["carcinogen", "mutagen", "reproductive", "toxic to reproduction"];
+  const hasHighHazard = sdsData.hazardClassification.ghs.some(
+    hazard => highHazardKeywords.some(keyword => hazard.toLowerCase().includes(keyword))
+  );
+  
+  if (hasHighHazard) {
+    return "High Hazard";
+  }
+  
+  // Check for moderate hazards
+  const moderateHazardKeywords = ["irritation", "corrosion", "sensitizer", "toxic", "danger"];
+  const hasModerateHazard = sdsData.hazardClassification.ghs.some(
+    hazard => moderateHazardKeywords.some(keyword => hazard.toLowerCase().includes(keyword))
+  );
+  
+  if (hasModerateHazard) {
+    return "Moderate Hazard";
+  }
+  
+  // Check WHMIS classifications
+  const hasWHMISHazard = sdsData.hazardClassification.whmis.some(
+    hazard => !hazard.toLowerCase().includes("not classified")
+  );
+  
+  if (hasWHMISHazard) {
+    return "Moderate Hazard";
+  }
+  
+  return "Non-Hazardous";
+};
+
+// Combined hazard assessment using both NIOSH and SDS data
+export const getCombinedHazardLevel = (
+  nioshInfo: NioshDrugInfo,
+  sdsData: SDSData | null
+): HazardLevel => {
+  const nioshHazardLevel = getHazardLevel(nioshInfo);
+  
+  if (!sdsData) {
+    return nioshHazardLevel;
+  }
+  
+  const sdsHazardLevel = getHazardLevelFromSDS(sdsData);
+  
+  // Take the highest hazard level
+  if (nioshHazardLevel === "High Hazard" || sdsHazardLevel === "High Hazard") {
+    return "High Hazard";
+  }
+  
+  if (nioshHazardLevel === "Moderate Hazard" || sdsHazardLevel === "Moderate Hazard") {
+    return "Moderate Hazard";
+  }
+  
+  return "Non-Hazardous";
+};
+
 // Get PPE recommendations based on hazard level
-export const getPPERecommendations = (hazardLevel: HazardLevel) => {
+export const getPPERecommendations = (hazardLevel: HazardLevel, sdsData?: SDSData | null) => {
+  // Start with default PPE based on hazard level
+  let ppe = {
+    gloves: "",
+    gown: "",
+    mask: "",
+    eyeProtection: false,
+    otherPPE: [] as string[]
+  };
+  
+  // Set basic PPE based on hazard level
   switch (hazardLevel) {
     case "High Hazard":
-      return {
+      ppe = {
         gloves: "Chemotherapy",
         gown: "Disposable Hazardous Gown",
         mask: "N95",
         eyeProtection: true,
         otherPPE: ["Head covers", "Shoe covers"]
       };
+      break;
     case "Moderate Hazard":
-      return {
+      ppe = {
         gloves: "Double Regular",
         gown: "Designated Compounding Jacket",
         mask: "Surgical mask",
         eyeProtection: true,
         otherPPE: ["Hair covers"]
       };
+      break;
     default:
-      return {
+      ppe = {
         gloves: "Regular",
         gown: "Designated Compounding Jacket",
         mask: "Surgical mask",
@@ -208,11 +282,51 @@ export const getPPERecommendations = (hazardLevel: HazardLevel) => {
         otherPPE: []
       };
   }
+  
+  // If SDS data is available, enhance recommendations
+  if (sdsData) {
+    // Use SDS glove recommendation if available
+    if (sdsData.recommendedPPE.gloves && 
+        !sdsData.recommendedPPE.gloves.toLowerCase().includes("not specified")) {
+      ppe.gloves = sdsData.recommendedPPE.gloves;
+    }
+    
+    // Use SDS respiratory recommendation if available
+    if (sdsData.recommendedPPE.respiratoryProtection && 
+        !sdsData.recommendedPPE.respiratoryProtection.toLowerCase().includes("not specified") &&
+        !sdsData.recommendedPPE.respiratoryProtection.toLowerCase().includes("not required")) {
+      ppe.mask = sdsData.recommendedPPE.respiratoryProtection;
+    }
+    
+    // Ensure eye protection if recommended
+    if (sdsData.recommendedPPE.eyeProtection && 
+        !sdsData.recommendedPPE.eyeProtection.toLowerCase().includes("not specified") &&
+        !sdsData.recommendedPPE.eyeProtection.toLowerCase().includes("not required")) {
+      ppe.eyeProtection = true;
+    }
+  }
+  
+  return ppe;
 };
 
 // NAPRA Risk Assessment Decision Algorithm
 // This algorithm determines NAPRA risk level based on multiple factors
 export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => {
+  // Additional condition based on SDS hazard information
+  const hasHighSdsHazard = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      if (ingredient.sdsData) {
+        const sdsHazardLevel = getHazardLevelFromSDS(ingredient.sdsData);
+        return sdsHazardLevel === "High Hazard";
+      }
+      return false;
+    }
+  );
+  
+  if (hasHighSdsHazard) {
+    return "Level C";
+  }
+  
   // Check for hazardous ingredients (NIOSH Table 1 - automatic Level C)
   const hasTable1Hazards = assessmentData.activeIngredients.some(
     (ingredient: any) => ingredient.nioshStatus?.table === "Table 1"
@@ -221,6 +335,17 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   if (hasTable1Hazards) {
     return "Level C";
   }
+  
+  // Has moderate SDS hazard (Level B)
+  const hasModSdsHazard = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      if (ingredient.sdsData) {
+        const sdsHazardLevel = getHazardLevelFromSDS(ingredient.sdsData);
+        return sdsHazardLevel === "Moderate Hazard";
+      }
+      return false;
+    }
+  );
   
   // Check for reproductive toxicity or WHMIS hazards (Level B or C)
   const hasReproductiveToxicity = assessmentData.activeIngredients.some(
@@ -235,7 +360,7 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     (ingredient: any) => ingredient.nioshStatus?.table === "Table 2"
   );
   
-  if (hasReproductiveToxicity || (hasWHMISHazards && hasTable2Hazards)) {
+  if (hasReproductiveToxicity || (hasWHMISHazards && hasTable2Hazards) || hasModSdsHazard) {
     return "Level B";
   }
   
