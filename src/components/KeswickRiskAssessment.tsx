@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, ShieldCheck, Info, Download, Eye } from "lucide-react";
 import PDFViewerWrapper, { PDFDataProvider } from "./pdf/PDFViewerWrapper";
 import { PDFViewer } from "@/components";
 import { Badge } from "@/components/ui/badge";
+import { SDSData } from "@/utils/mediscaAPI";
 
 export interface ActiveIngredient {
   name: string;
@@ -19,6 +19,7 @@ export interface ActiveIngredient {
   whmisHazards: boolean;
   sdsDescription: string;
   monographWarnings: string;
+  sdsData?: SDSData | null; // Add this property to fix the type error
 }
 
 export interface KeswickAssessmentData {

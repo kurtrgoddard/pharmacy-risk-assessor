@@ -1,10 +1,9 @@
-
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, ShieldAlert, Info, AlertTriangle, AirVent, HardHat, FlaskRound, Mask } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Info, AlertTriangle, AirVent, HardHat, FlaskRound, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RiskLevelSectionProps {
@@ -113,7 +112,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             </ul>
             
             <div className="mt-2 p-2 bg-red-100 rounded flex items-start">
-              <Mask className="w-4 h-4 text-red-700 mr-2 flex-shrink-0 mt-0.5" />
+              <AlertCircle className="w-4 h-4 text-red-700 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-800">
                 <span className="font-medium">Critical Safety Alert:</span> All compounding must be performed in a containment hood with appropriate ventilation. Powder handling requires specialized containment equipment and rigorous procedures.
               </p>
