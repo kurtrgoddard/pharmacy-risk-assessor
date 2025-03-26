@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -82,6 +83,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
               <li>Moderate complexity with specific risk factors</li>
               <li>Multi-ingredient compounds</li>
               <li className="font-medium">All powder formulations (mandatory)</li>
+              <li className="font-medium">Any narcotics (e.g., Ketamine, Baclofen)</li>
               <li>Segregated compounding area recommended</li>
               <li>Enhanced PPE (double gloves, gown, mask, eye protection)</li>
               <li className="font-medium">Dedicated equipment and ventilation systems</li>
@@ -92,7 +94,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <div className="mt-2 p-2 bg-yellow-100 rounded flex items-start">
               <AirVent className="w-4 h-4 text-yellow-700 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-yellow-800">
-                <span className="font-medium">Required Safety Equipment:</span> Proper ventilation systems and powder containment hood must be used for all powder formulations and multi-ingredient compounds.
+                <span className="font-medium">Required Safety Equipment:</span> Proper ventilation systems and powder containment hood must be used for all powder formulations, narcotics, and multi-ingredient compounds.
               </p>
             </div>
           </div>
@@ -103,6 +105,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <h4 className="text-sm font-medium text-red-800 mb-1">Level C Requirements</h4>
             <ul className="list-disc list-inside text-xs text-red-700">
               <li>Hazardous drugs (NIOSH Table 1) or complex preparations</li>
+              <li>Reproductive toxins, carcinogens, or mutagens</li>
               <li>Dedicated room with negative pressure</li>
               <li className="font-medium">Containment primary engineering control (C-PEC)</li>
               <li>Full PPE (chemotherapy gloves, hazardous gown, N95 mask)</li>
@@ -203,8 +206,8 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Risk Level Guidelines</h4>
             <ul className="list-disc list-inside text-xs text-pharmacy-gray">
               <li><span className="font-medium">Level A:</span> Simple non-powder preparations with minimal risk</li>
-              <li><span className="font-medium">Level B:</span> Moderate complexity, <span className="font-medium">all powder formulations</span>, multi-ingredient compounds requiring special precautions</li>
-              <li><span className="font-medium">Level C:</span> Complex/hazardous drugs (NIOSH Group 1 or WHMIS hazards)</li>
+              <li><span className="font-medium">Level B:</span> Moderate complexity, <span className="font-medium">all powder formulations</span>, <span className="font-medium">narcotics</span>, multi-ingredient compounds requiring special precautions</li>
+              <li><span className="font-medium">Level C:</span> Complex/hazardous drugs (NIOSH Group 1 or significant WHMIS hazards), reproductive toxins, carcinogens</li>
             </ul>
           </div>
         )}

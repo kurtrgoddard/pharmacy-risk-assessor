@@ -19,7 +19,7 @@ export interface ActiveIngredient {
   whmisHazards: boolean;
   sdsDescription: string;
   monographWarnings: string;
-  sdsData?: SDSData | null; // Add this property to fix the type error
+  sdsData?: SDSData | null;
 }
 
 export interface KeswickAssessmentData {
@@ -61,6 +61,8 @@ export interface KeswickAssessmentData {
   safetyEquipment: {
     eyeWashStation: boolean;
     safetyShower: boolean;
+    powderContainmentHood?: boolean;
+    localExhaustVentilation?: boolean;
   };
   riskLevel: string;
   rationale: string;
@@ -130,7 +132,12 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
               <p className="text-sm text-pharmacy-gray mb-1"><span className="font-medium">Name:</span> {assessmentData.compoundName}</p>
               <p className="text-sm text-pharmacy-gray mb-1"><span className="font-medium">DIN:</span> {assessmentData.din || 'N/A'}</p>
               <p className="text-sm text-pharmacy-gray mb-1">
-                <span className="font-medium">Active Ingredients:</span> {assessmentData.activeIngredients.map(ing => ing.name).join(', ')}
+                <span className="font-medium">Active Ingredients:</span> {assessmentData.activeIngredients.map(ing => {
+                  if (ing.manufacturer) {
+                    return `${ing.name} (${ing.manufacturer})`;
+                  } 
+                  return ing.name;
+                }).join(', ')}
               </p>
             </div>
             
@@ -167,6 +174,8 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
                   <li>Ventilation Required: {assessmentData.safetyChecks.ventilationRequired ? 'Yes' : 'No'}</li>
                   <li>Eye Wash Station: {assessmentData.safetyEquipment.eyeWashStation ? 'Required' : 'Not Required'}</li>
                   <li>Safety Shower: {assessmentData.safetyEquipment.safetyShower ? 'Required' : 'Not Required'}</li>
+                  {assessmentData.safetyEquipment.powderContainmentHood && <li>Powder Containment Hood: Required</li>}
+                  {assessmentData.safetyEquipment.localExhaustVentilation && <li>Local Exhaust Ventilation: Required</li>}
                 </ul>
               </div>
             </div>

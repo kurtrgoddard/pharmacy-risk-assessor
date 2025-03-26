@@ -356,7 +356,7 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   if (hasHighSdsHazard) {
     console.log("Level C assigned - Contains ingredient with high hazard SDS classification");
     return "Level C";
-    }
+  }
   
   // Check for reproductive toxicity - a key factor in Level C assignment
   const hasReproductiveToxicity = assessmentData.activeIngredients.some(
@@ -440,21 +440,39 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   // Combined powder assessment - any of these triggers powder handling requirements
   const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm || powderIngredientNames;
   
+  // Check for narcotic/controlled substances that require special handling
+  const narcoticKeywords = ["ketamine", "baclofen", "codeine", "morphine", "fentanyl", "hydrocodone", "oxycodone"];
+  const hasNarcoticIngredients = assessmentData.activeIngredients.some(
+    (ingredient: any) => narcoticKeywords.some(keyword => 
+      ingredient.name.toLowerCase().includes(keyword)
+    )
+  );
+  
   console.log("Powder assessment:", {
     isPowderFormulation,
     hasIngredientInPowderForm,
     powderIngredientNames,
-    hasPowderRisk
+    hasPowderRisk,
+    hasNarcoticIngredients
   });
   
   // CRITICAL UPDATE: All powder formulations must be Level B minimum
-  if (hasPowderRisk) {
-    console.log("Level B assigned - Powder formulation detected (mandatory Level B per NAPRA)");
+  if (hasPowderRisk || hasNarcoticIngredients) {
+    console.log("Level B assigned - Powder formulation or narcotic detected (mandatory Level B per NAPRA)");
     
-    // If powder has hazard, escalate to Level C
+    // If powder has significant hazard classifications, escalate to Level C
     if (hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) {
-      console.log("Level C assigned - Moderately hazardous drug in powder form");
-      return "Level C";
+      // Only escalate to Level C for truly hazardous powders
+      const isHighlyHazardous = assessmentData.activeIngredients.some(
+        (ingredient: any) => 
+          (ingredient.nioshStatus?.table === "Table 1") || 
+          (ingredient.reproductiveToxicity === true)
+      );
+      
+      if (isHighlyHazardous) {
+        console.log("Level C assigned - Highly hazardous drug in powder form");
+        return "Level C";
+      }
     }
     
     return "Level B";

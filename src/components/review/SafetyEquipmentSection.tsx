@@ -2,6 +2,7 @@
 import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Fan, ArrowDown, AlertCircle, AirVent, FlaskRound } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 interface SafetyEquipment {
   eyeWashStation: boolean;
@@ -70,9 +71,9 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <label className="flex items-center text-sm font-medium text-pharmacy-gray mb-1">
             Powder containment hood
             {hasPowderHazard && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+              <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200">
                 Required
-              </span>
+              </Badge>
             )}
           </label>
           <div className="flex items-center space-x-2">
@@ -98,9 +99,9 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <label className="flex items-center text-sm font-medium text-pharmacy-gray mb-1">
             Local exhaust ventilation
             {hasPowderHazard && (
-              <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-orange-100 text-orange-800">
+              <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200">
                 Required
-              </span>
+              </Badge>
             )}
           </label>
           <div className="flex items-center space-x-2">
@@ -134,6 +135,7 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
               <li>Regular verification of airflow and filtration systems</li>
               <li>Separate area from other compounding activities when handling powders</li>
               <li>All powder formulations must be classified as Level B minimum</li>
+              <li><strong>Special attention for narcotic powders like Ketamine and Baclofen</strong></li>
             </ul>
           </div>
         </div>
