@@ -356,7 +356,7 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   if (hasHighSdsHazard) {
     console.log("Level C assigned - Contains ingredient with high hazard SDS classification");
     return "Level C";
-  }
+    }
   
   // Check for reproductive toxicity - a key factor in Level C assignment
   const hasReproductiveToxicity = assessmentData.activeIngredients.some(
@@ -427,24 +427,48 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     }
   );
   
-  // Combined powder assessment
-  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm;
+  // Check if ingredient names suggest powder form
+  const powderIngredientNames = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      const powderIndicators = ["powder", "crystalline", "granular"];
+      return powderIndicators.some(keyword => 
+        ingredient.name.toLowerCase().includes(keyword)
+      );
+    }
+  );
+  
+  // Combined powder assessment - any of these triggers powder handling requirements
+  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm || powderIngredientNames;
   
   console.log("Powder assessment:", {
     isPowderFormulation,
     hasIngredientInPowderForm,
+    powderIngredientNames,
     hasPowderRisk
   });
   
-  // If has Table 2 drug or moderate SDS hazard AND is in powder form - escalate to Level C
-  if ((hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) && hasPowderRisk) {
-    console.log("Level C assigned - Moderately hazardous drug in powder form");
-    return "Level C";
+  // CRITICAL UPDATE: All powder formulations must be Level B minimum
+  if (hasPowderRisk) {
+    console.log("Level B assigned - Powder formulation detected (mandatory Level B per NAPRA)");
+    
+    // If powder has hazard, escalate to Level C
+    if (hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) {
+      console.log("Level C assigned - Moderately hazardous drug in powder form");
+      return "Level C";
+    }
+    
+    return "Level B";
   }
   
   // Level B assessment - based on hazard level and complexity factors
   if (hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) {
     console.log("Level B assigned - Contains moderate hazard ingredient");
+    return "Level B";
+  }
+  
+  // Multi-ingredient compounds should be Level B minimum
+  if (isMultiIngredient) {
+    console.log("Level B assigned - Multi-ingredient compound (increased complexity)");
     return "Level B";
   }
   
@@ -454,9 +478,7 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     assessmentData.workflowConsiderations?.microbialContaminationRisk,
     assessmentData.workflowConsiderations?.crossContaminationRisk,
     assessmentData.safetyChecks?.specialEducation?.required,
-    hasPowderRisk,
-    assessmentData.preparationDetails?.concentrationRisk,
-    isMultiIngredient  // Added multi-ingredient as a complexity factor
+    assessmentData.preparationDetails?.concentrationRisk
   ];
   
   const complexityScore = complexityFactors.filter(Boolean).length;
@@ -465,9 +487,9 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     complexityScore
   });
   
-  // If has multiple complexity factors or is in powder form, assign Level B
-  if (complexityScore >= 2 || hasPowderRisk) {
-    console.log("Level B assigned - Multiple complexity factors or powder form present");
+  // If has multiple complexity factors, assign Level B
+  if (complexityScore >= 2) {
+    console.log("Level B assigned - Multiple complexity factors present");
     return "Level B";
   }
   
@@ -503,9 +525,19 @@ export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARisk
       return false;
     }
   );
+
+  // Check if ingredient names suggest powder form
+  const powderIngredientNames = assessmentData.activeIngredients.some(
+    (ingredient: any) => {
+      const powderIndicators = ["powder", "crystalline", "granular"];
+      return powderIndicators.some(keyword => 
+        ingredient.name.toLowerCase().includes(keyword)
+      );
+    }
+  );
   
   // Combined powder assessment
-  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm;
+  const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm || powderIngredientNames;
   
   // Check for multi-ingredient compound
   const isMultiIngredient = assessmentData.activeIngredients.length > 1;
@@ -536,19 +568,19 @@ export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARisk
       }
       
       // Check if Level C is due to powder form of hazardous drug
-      if (isPowderFormulation && hazardousIngredients.length > 0) {
+      if (hasPowderRisk && hazardousIngredients.length > 0) {
         return `This compound involves handling hazardous materials (${hazardousIngredients.join(", ")}) in powder form, which presents significant exposure risks. According to NAPRA guidelines, this combination requires Level C precautions including proper containment, ventilation controls, and full PPE.`;
       }
       
       return `Based on comprehensive hazard assessment, this compound requires Level C precautions due to significant risks associated with the ingredients and/or preparation process. This includes containment primary engineering control and full PPE according to NAPRA guidelines.`;
     
     case "Level B":
-      if (hazardousIngredients.length > 0) {
+      if (hasPowderRisk) {
+        return `This compound involves handling ingredients in powder form, which presents potential exposure risks requiring additional precautions. NAPRA guidelines mandate that all powder formulations must be classified as minimum Level B, requiring proper ventilation, powder containment hood, and appropriate PPE.`;
+      } else if (hazardousIngredients.length > 0) {
         return `This compound contains ${hazardousIngredients.join(", ")} which ${hazardousIngredients.length > 1 ? "have" : "has"} moderate hazard classifications. NAPRA guidelines require Level B precautions including proper ventilation, segregated compounding area, and appropriate PPE.`;
-      } else if (hasPowderRisk) {
-        return `This compound involves handling ingredients in powder form, which presents potential exposure risks requiring additional precautions. According to NAPRA guidelines, powder formulations require Level B precautions including proper ventilation and appropriate PPE.`;
       } else if (isMultiIngredient) {
-        return `This is a complex multi-ingredient preparation requiring additional handling precautions. According to NAPRA guidelines, these complexity factors necessitate Level B precautions including proper workspace setup and appropriate PPE.`;
+        return `This is a complex multi-ingredient preparation requiring additional handling precautions. According to NAPRA guidelines, multi-ingredient compounds require Level B precautions including proper workspace setup and appropriate PPE.`;
       } else {
         // List specific complexity factors that led to Level B
         const factorsList = [];
@@ -563,7 +595,7 @@ export const generateNAPRARationale = (assessmentData: any, riskLevel: NAPRARisk
       }
     
     case "Level A":
-      return "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding.";
+      return "This compound consists of simple preparations with minimal risk factors and no powder handling. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding.";
     
     default:
       return "Risk level rationale not available.";

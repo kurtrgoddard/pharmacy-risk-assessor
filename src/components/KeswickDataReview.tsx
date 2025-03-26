@@ -114,20 +114,48 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   
   // Check for powder hazards when physical characteristics change
   useEffect(() => {
-    // If "Powder" is in physical characteristics, or SDS data indicates powder
+    // If "Powder" is in physical characteristics, or SDS data indicates powder, or ingredient names suggest powder
     const powderInCharacteristics = formData.physicalCharacteristics.some(
       char => char.toLowerCase().includes('powder')
     );
     
-    // Only set true if there are hazards and it's in powder form
-    const hasHazardousIngredient = formData.activeIngredients.some(
-      ing => ing.nioshStatus.hazardLevel === "High Hazard" || 
-            ing.nioshStatus.hazardLevel === "Moderate Hazard" ||
-            ing.whmisHazards
+    // Check if any SDS data indicates powder form
+    const powderInSdsData = formData.activeIngredients.some(
+      ing => ing.sdsData && ing.sdsData.physicalForm && 
+      ["powder", "crystalline", "granular", "dust", "solid"].some(
+        keyword => ing.sdsData!.physicalForm!.toLowerCase().includes(keyword)
+      )
     );
     
-    setHasPowderHazard(powderInCharacteristics && hasHazardousIngredient);
-  }, [formData.physicalCharacteristics, formData.activeIngredients]);
+    // Check if ingredient names suggest powder form
+    const powderInIngredientNames = formData.activeIngredients.some(
+      ing => ["powder", "crystalline", "granular"].some(
+        keyword => ing.name.toLowerCase().includes(keyword)
+      )
+    );
+    
+    // Determine if there's a powder hazard (now more inclusive)
+    const hasPowder = powderInCharacteristics || powderInSdsData || powderInIngredientNames;
+    
+    // Set powder hazard status
+    setHasPowderHazard(hasPowder);
+    
+    // If we detect a powder and we're not editing, ensure proper safety equipment is recommended
+    if (hasPowder && !isEditing) {
+      setFormData(prev => ({
+        ...prev,
+        safetyEquipment: {
+          ...prev.safetyEquipment,
+          powderContainmentHood: true,
+          localExhaustVentilation: true
+        },
+        safetyChecks: {
+          ...prev.safetyChecks,
+          ventilationRequired: true
+        }
+      }));
+    }
+  }, [formData.physicalCharacteristics, formData.activeIngredients, isEditing]);
   
   const handleValidateData = () => {
     // Basic validation

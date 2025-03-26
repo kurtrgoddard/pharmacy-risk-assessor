@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, ShieldAlert, Info, AlertTriangle, Fan, HardHat } from "lucide-react";
+import { ShieldCheck, ShieldAlert, Info, AlertTriangle, AirVent, HardHat, FlaskRound, Mask } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface RiskLevelSectionProps {
@@ -71,6 +71,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
               <li>Basic PPE (gloves, mask, designated jacket)</li>
               <li>Good airflow but no special ventilation needed</li>
               <li>Regular compounding area with cleaning protocols</li>
+              <li className="font-medium">Non-powder formulations only</li>
             </ul>
           </div>
         );
@@ -80,6 +81,8 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             <h4 className="text-sm font-medium text-yellow-800 mb-1">Level B Requirements</h4>
             <ul className="list-disc list-inside text-xs text-yellow-700">
               <li>Moderate complexity with specific risk factors</li>
+              <li>Multi-ingredient compounds</li>
+              <li className="font-medium">All powder formulations (mandatory)</li>
               <li>Segregated compounding area recommended</li>
               <li>Enhanced PPE (double gloves, gown, mask, eye protection)</li>
               <li className="font-medium">Dedicated equipment and ventilation systems</li>
@@ -88,7 +91,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             </ul>
             
             <div className="mt-2 p-2 bg-yellow-100 rounded flex items-start">
-              <Fan className="w-4 h-4 text-yellow-700 mr-2 flex-shrink-0 mt-0.5" />
+              <AirVent className="w-4 h-4 text-yellow-700 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-yellow-800">
                 <span className="font-medium">Required Safety Equipment:</span> Proper ventilation systems and powder containment hood must be used for all powder formulations and multi-ingredient compounds.
               </p>
@@ -110,7 +113,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
             </ul>
             
             <div className="mt-2 p-2 bg-red-100 rounded flex items-start">
-              <HardHat className="w-4 h-4 text-red-700 mr-2 flex-shrink-0 mt-0.5" />
+              <Mask className="w-4 h-4 text-red-700 mr-2 flex-shrink-0 mt-0.5" />
               <p className="text-xs text-red-800">
                 <span className="font-medium">Critical Safety Alert:</span> All compounding must be performed in a containment hood with appropriate ventilation. Powder handling requires specialized containment equipment and rigorous procedures.
               </p>
@@ -136,7 +139,7 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
               </TooltipTrigger>
               <TooltipContent className="max-w-md">
                 <p className="text-sm">Risk levels are assigned based on NAPRA guidelines considering ingredient hazards, 
-                preparation complexity, and required safety measures.</p>
+                preparation complexity, and required safety measures. All powder formulations must be Level B or higher.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -151,8 +154,8 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
               <SelectValue placeholder="Select a risk level" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="Level A">Level A - Simple</SelectItem>
-              <SelectItem value="Level B">Level B - Moderate</SelectItem>
+              <SelectItem value="Level A">Level A - Simple (Non-powder)</SelectItem>
+              <SelectItem value="Level B">Level B - Moderate/Powder Formulations</SelectItem>
               <SelectItem value="Level C">Level C - Complex/Hazardous</SelectItem>
             </SelectContent>
           </Select>
@@ -200,8 +203,8 @@ const RiskLevelSection: React.FC<RiskLevelSectionProps> = ({
           <div className="mt-4 p-3 bg-blue-50 border border-blue-100 rounded-md">
             <h4 className="text-sm font-medium text-pharmacy-darkBlue mb-1">NAPRA Risk Level Guidelines</h4>
             <ul className="list-disc list-inside text-xs text-pharmacy-gray">
-              <li><span className="font-medium">Level A:</span> Simple preparations with minimal risk</li>
-              <li><span className="font-medium">Level B:</span> Moderate complexity, powder formulations, multi-ingredient compounds requiring special precautions</li>
+              <li><span className="font-medium">Level A:</span> Simple non-powder preparations with minimal risk</li>
+              <li><span className="font-medium">Level B:</span> Moderate complexity, <span className="font-medium">all powder formulations</span>, multi-ingredient compounds requiring special precautions</li>
               <li><span className="font-medium">Level C:</span> Complex/hazardous drugs (NIOSH Group 1 or WHMIS hazards)</li>
             </ul>
           </div>
