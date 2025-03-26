@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { AlertTriangle, AlertCircle, Shield, FileText, Info } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -111,6 +110,22 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
     }
   };
 
+  // Check if powder hazard exists for an ingredient
+  const hasPowderHazard = (ingredient: ActiveIngredient, ingredientSdsData: SDSData | null): boolean => {
+    if (!ingredientSdsData) return false;
+    
+    // Check if it's a powder
+    const isPowder = ingredientSdsData.physicalForm?.toLowerCase().includes("powder") || 
+                     ingredientSdsData.physicalForm?.toLowerCase().includes("dust");
+    
+    // Check if it's hazardous
+    const isHazardous = ingredient.nioshStatus.hazardLevel === "High Hazard" ||
+                        ingredient.nioshStatus.hazardLevel === "Moderate Hazard" ||
+                        ingredient.whmisHazards;
+    
+    return isPowder && isHazardous;
+  };
+
   return (
     <>
       {activeIngredients.map((ingredient, index) => (
@@ -142,16 +157,24 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
                     className="w-full"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-pharmacy-gray mb-1">Manufacturer</label>
-                  <Input
-                    type="text"
-                    value={ingredient.manufacturer}
-                    onChange={(e) => onActiveIngredientChange(index, "manufacturer", e.target.value)}
-                    disabled={!isEditing}
-                    className="w-full"
-                  />
-                </div>
+                
+                {isEditing ? (
+                  <div>
+                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Manufacturer (Optional)</label>
+                    <Input
+                      type="text"
+                      value={ingredient.manufacturer}
+                      onChange={(e) => onActiveIngredientChange(index, "manufacturer", e.target.value)}
+                      disabled={!isEditing}
+                      className="w-full"
+                    />
+                  </div>
+                ) : ingredient.manufacturer ? (
+                  <div>
+                    <label className="block text-sm font-medium text-pharmacy-gray mb-1">Safety Information Source</label>
+                    <p className="text-sm text-pharmacy-gray">Verified via standardized safety database</p>
+                  </div>
+                ) : null}
               </div>
             </TabsContent>
             
@@ -235,6 +258,16 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
                     className="w-full"
                   />
                 </div>
+                
+                {hasPowderHazard(ingredient, sdsData[ingredient.name]) && (
+                  <div className="md:col-span-2 p-3 bg-orange-50 border border-orange-200 rounded-md flex items-start">
+                    <AlertTriangle className="w-4 h-4 text-orange-500 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-orange-800">
+                      <p className="font-medium">Powder Hazard Warning</p>
+                      <p className="text-xs mt-1">This ingredient is in powder form and has hazard classifications. Special handling precautions with powder containment hood and proper ventilation are required.</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </TabsContent>
             

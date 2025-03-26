@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { AlertTriangle, Check, Edit, Info, ShieldCheck, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -45,6 +44,9 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
   const ingredientNames = useCallback(() => 
     formData.activeIngredients.map(i => i.name),
   [formData.activeIngredients]);
+  
+  // Check if any ingredient has a powder hazard
+  const [hasPowderHazard, setHasPowderHazard] = useState<boolean>(false);
   
   // Auto-detect NIOSH hazard information when ingredients change
   useEffect(() => {
@@ -109,6 +111,23 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
       });
     }
   }, [ingredientNames(), isEditing]);
+  
+  // Check for powder hazards when physical characteristics change
+  useEffect(() => {
+    // If "Powder" is in physical characteristics, or SDS data indicates powder
+    const powderInCharacteristics = formData.physicalCharacteristics.some(
+      char => char.toLowerCase().includes('powder')
+    );
+    
+    // Only set true if there are hazards and it's in powder form
+    const hasHazardousIngredient = formData.activeIngredients.some(
+      ing => ing.nioshStatus.hazardLevel === "High Hazard" || 
+            ing.nioshStatus.hazardLevel === "Moderate Hazard" ||
+            ing.whmisHazards
+    );
+    
+    setHasPowderHazard(powderInCharacteristics && hasHazardousIngredient);
+  }, [formData.physicalCharacteristics, formData.activeIngredients]);
   
   const handleValidateData = () => {
     // Basic validation
@@ -508,6 +527,7 @@ const KeswickDataReview: React.FC<KeswickDataReviewProps> = ({
               safetyEquipment={formData.safetyEquipment}
               isEditing={isEditing}
               onNestedObjectChange={handleNestedObjectChange}
+              hasPowderHazard={hasPowderHazard}
             />
           </AccordionContent>
         </AccordionItem>
