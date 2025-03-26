@@ -204,6 +204,7 @@ const Index = () => {
       setLoadingMessage(processingSteps[0]);
       
       // Get text that was extracted from the PDF during upload
+      // Use optional chaining to safely access the property
       const extractedText = file.extractedText || "";
       
       // In a real implementation, this would call an API to process the PDF
