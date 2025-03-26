@@ -52,13 +52,20 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
       
       let extractedText = '';
       
+      // Process all pages for more comprehensive extraction
       for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        extractedText += textContent.items.map((item: any) => item.str).join(' ');
+        
+        // Improved text extraction with spacing consideration
+        const pageText = textContent.items
+          .map((item: any) => item.str)
+          .join(' ');
+          
+        extractedText += pageText + ' ';
       }
       
-      console.log("Extracted PDF Text:", extractedText);
+      console.log("Extracted PDF Text (first 500 chars):", extractedText.substring(0, 500));
       return extractedText;
     } catch (error) {
       console.error("Error extracting text from PDF:", error);
@@ -72,7 +79,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
     setIsLoading(true);
     setSelectedFile(null);
     
-    // Clear SDS cache when a new file is uploaded
+    // Clear SDS cache when a new file is uploaded to prevent data persistence
     clearSdsCache();
     
     try {
@@ -92,7 +99,7 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
         return;
       }
 
-      // Extract text from PDF
+      // Extract text from PDF with improved extraction
       const extractedText = await extractTextFromPDF(file);
       
       // Add the extracted text to the file object for later use

@@ -5,6 +5,7 @@
  */
 
 import { toast } from "sonner";
+import { parseSdsPdf } from "./sdsPDFParser";
 
 // Base URL for Medisca's public SDS database
 const MEDISCA_BASE_URL = "https://www.medisca.com/Pages/ProductPages/SDSPages";
@@ -95,6 +96,7 @@ const sdsCache: Record<string, SDSData> = {};
  */
 export interface SDSData {
   ingredientName: string;
+  physicalForm?: string;
   hazardClassification: {
     ghs: string[];
     whmis: string[];
@@ -109,6 +111,14 @@ export interface SDSData {
   handlingPrecautions: string[];
   timestamp: number; // When this data was retrieved/cached
 }
+
+/**
+ * Clear the SDS cache for a fresh retrieval
+ */
+export const clearSdsCache = () => {
+  console.log("Clearing SDS data cache");
+  Object.keys(sdsCache).forEach(key => delete sdsCache[key]);
+};
 
 /**
  * Retrieves and parses SDS data for a specific ingredient
@@ -151,14 +161,6 @@ export const getSdsData = async (ingredientName: string): Promise<SDSData | null
 };
 
 /**
- * Clear the SDS cache for a fresh retrieval
- */
-export const clearSdsCache = () => {
-  console.log("Clearing SDS data cache");
-  Object.keys(sdsCache).forEach(key => delete sdsCache[key]);
-};
-
-/**
  * Generates mock SDS data for demo purposes
  * In a real implementation, this would be replaced with actual PDF parsing
  */
@@ -169,18 +171,20 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
   if (lowerName.includes("ketoprofen")) {
     return {
       ingredientName: ingredientName,
+      physicalForm: "White crystalline powder",
       hazardClassification: {
         ghs: ["Skin Irritation Category 2", "Eye Irritation Category 2", "Specific Target Organ Toxicity - Single Exposure Category 3"],
         whmis: ["Health Hazard", "Exclamation Mark"]
       },
       recommendedPPE: {
         gloves: "Nitrile gloves",
-        respiratoryProtection: "Dust mask when handling powder",
+        respiratoryProtection: "Dust mask when handling powder, use in powder containment hood",
         eyeProtection: "Safety glasses with side-shields",
         bodyProtection: "Lab coat"
       },
-      exposureRisks: ["Skin irritation", "Eye irritation", "Respiratory irritation"],
+      exposureRisks: ["Skin irritation", "Eye irritation", "Respiratory irritation", "Powder inhalation hazard"],
       handlingPrecautions: [
+        "Use powder containment hood when handling",
         "Avoid breathing dust/fume/gas/mist/vapors/spray",
         "Use only in well-ventilated areas",
         "Wash hands thoroughly after handling"
@@ -191,18 +195,20 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
   else if (lowerName.includes("estradiol")) {
     return {
       ingredientName: ingredientName,
+      physicalForm: "White to off-white crystalline powder",
       hazardClassification: {
         ghs: ["Reproductive Toxicity Category 1", "Carcinogenicity Category 1"],
         whmis: ["Health Hazard"]
       },
       recommendedPPE: {
         gloves: "Double gloves (nitrile)",
-        respiratoryProtection: "N95 respirator",
+        respiratoryProtection: "N95 respirator, use in powder containment hood",
         eyeProtection: "Safety goggles",
         bodyProtection: "Disposable gown"
       },
-      exposureRisks: ["Reproductive harm", "Endocrine effects", "Potential carcinogenic effects"],
+      exposureRisks: ["Reproductive harm", "Endocrine effects", "Potential carcinogenic effects", "Powder inhalation hazard"],
       handlingPrecautions: [
+        "Use powder containment hood",
         "Avoid all contact",
         "Handle in closed system if possible",
         "Containment required",
@@ -214,13 +220,14 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
   else if (lowerName.includes("lidocaine") || lowerName.includes("prilocaine")) {
     return {
       ingredientName: ingredientName,
+      physicalForm: "White crystalline powder",
       hazardClassification: {
         ghs: ["Acute Toxicity Category 4"],
         whmis: ["Exclamation Mark"]
       },
       recommendedPPE: {
         gloves: "Nitrile gloves",
-        respiratoryProtection: "Not typically required",
+        respiratoryProtection: "Not typically required for small quantities, dust mask for larger quantities",
         eyeProtection: "Safety glasses",
         bodyProtection: "Lab coat"
       },
@@ -233,10 +240,104 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
       timestamp: Date.now()
     };
   }
+  else if (lowerName.includes("gabapentin")) {
+    return {
+      ingredientName: ingredientName,
+      physicalForm: "White crystalline powder",
+      hazardClassification: {
+        ghs: ["Not classified as hazardous according to GHS"],
+        whmis: ["Not classified as hazardous according to WHMIS"]
+      },
+      recommendedPPE: {
+        gloves: "Regular nitrile gloves",
+        respiratoryProtection: "Not required under normal conditions",
+        eyeProtection: "Safety glasses recommended",
+        bodyProtection: "Regular lab coat"
+      },
+      exposureRisks: ["No significant risks under normal conditions"],
+      handlingPrecautions: [
+        "Follow good laboratory practices",
+        "Wash hands after handling",
+        "Keep container closed when not in use"
+      ],
+      timestamp: Date.now()
+    };
+  }
+  else if (lowerName.includes("ketamine")) {
+    return {
+      ingredientName: ingredientName,
+      physicalForm: "White or almost white crystalline powder",
+      hazardClassification: {
+        ghs: ["Not classified as hazardous according to GHS"],
+        whmis: ["Not classified as hazardous according to WHMIS"]
+      },
+      recommendedPPE: {
+        gloves: "Regular nitrile gloves",
+        respiratoryProtection: "Not required under normal conditions",
+        eyeProtection: "Safety glasses recommended",
+        bodyProtection: "Regular lab coat"
+      },
+      exposureRisks: ["No significant risks under normal conditions"],
+      handlingPrecautions: [
+        "Follow good laboratory practices",
+        "Wash hands after handling",
+        "Keep container closed when not in use",
+        "Store according to controlled substance requirements"
+      ],
+      timestamp: Date.now()
+    };
+  }
+  else if (lowerName.includes("baclofen")) {
+    return {
+      ingredientName: ingredientName,
+      physicalForm: "White to off-white crystalline powder",
+      hazardClassification: {
+        ghs: ["Not classified as hazardous according to GHS"],
+        whmis: ["Not classified as hazardous according to WHMIS"]
+      },
+      recommendedPPE: {
+        gloves: "Regular nitrile gloves",
+        respiratoryProtection: "Not required under normal conditions",
+        eyeProtection: "Safety glasses recommended",
+        bodyProtection: "Regular lab coat"
+      },
+      exposureRisks: ["No significant risks under normal conditions"],
+      handlingPrecautions: [
+        "Follow good laboratory practices",
+        "Wash hands after handling",
+        "Keep container closed when not in use"
+      ],
+      timestamp: Date.now()
+    };
+  }
+  else if (lowerName.includes("clonidine")) {
+    return {
+      ingredientName: ingredientName,
+      physicalForm: "White or almost white powder",
+      hazardClassification: {
+        ghs: ["Not classified as hazardous according to GHS"],
+        whmis: ["Not classified as hazardous according to WHMIS"]
+      },
+      recommendedPPE: {
+        gloves: "Regular nitrile gloves",
+        respiratoryProtection: "Not required under normal conditions",
+        eyeProtection: "Safety glasses recommended",
+        bodyProtection: "Regular lab coat"
+      },
+      exposureRisks: ["No significant risks under normal conditions"],
+      handlingPrecautions: [
+        "Follow good laboratory practices",
+        "Wash hands after handling",
+        "Keep container closed when not in use"
+      ],
+      timestamp: Date.now()
+    };
+  }
   else {
     // Default generic SDS data for other ingredients
     return {
       ingredientName: ingredientName,
+      physicalForm: "Crystalline powder or solid",
       hazardClassification: {
         ghs: ["Not classified as hazardous according to GHS"],
         whmis: ["Not classified as hazardous according to WHMIS"]

@@ -41,14 +41,29 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     return !(nonHazardousGhs && nonHazardousWhmis);
   };
   
-  const getHazardBadge = (data: SDSData) => {
-    if (!data) return null;
+  const isHighHazard = (data: SDSData): boolean => {
+    if (!data) return false;
     
-    if (data.hazardClassification.ghs.some(h => 
+    return data.hazardClassification.ghs.some(h => 
       h.toLowerCase().includes("carcinogen") || 
       h.toLowerCase().includes("mutagen") ||
       h.toLowerCase().includes("reproductive")
-    )) {
+    );
+  };
+  
+  const isPowderHazard = (data: SDSData): boolean => {
+    if (!data) return false;
+    
+    // Check if the SDS mentions powder form and has any hazard
+    return (data.physicalForm?.toLowerCase().includes("powder") || 
+           data.physicalForm?.toLowerCase().includes("dust")) && 
+           isHazardous(data);
+  };
+  
+  const getHazardBadge = (data: SDSData) => {
+    if (!data) return null;
+    
+    if (isHighHazard(data)) {
       return (
         <Badge className="bg-red-100 text-red-800 border-red-200">
           <ShieldAlert className="w-3 h-3 mr-1" />
@@ -103,14 +118,21 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   return (
     <div className="mt-4 border rounded-md overflow-hidden">
       <div 
-        className={`p-4 ${isHazardous(sdsData) ? 'bg-yellow-50' : 'bg-green-50'}`}
+        className={`p-4 ${isPowderHazard(sdsData) ? 'bg-orange-50' : isHazardous(sdsData) ? 'bg-yellow-50' : 'bg-green-50'}`}
         onClick={() => setExpanded(!expanded)}
       >
         <div className="flex justify-between items-center cursor-pointer">
           <div className="flex items-center">
-            <FileText className={`w-4 h-4 mr-2 ${isHazardous(sdsData) ? 'text-yellow-600' : 'text-green-600'}`} />
-            <span className="font-medium text-sm">Medisca SDS Information</span>
+            <FileText className={`w-4 h-4 mr-2 ${isPowderHazard(sdsData) ? 'text-orange-600' : isHazardous(sdsData) ? 'text-yellow-600' : 'text-green-600'}`} />
+            <span className="font-medium text-sm">Safety Data Information</span>
             {getHazardBadge(sdsData)}
+            
+            {isPowderHazard(sdsData) && (
+              <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200">
+                <AlertTriangle className="w-3 h-3 mr-1" />
+                Powder Hazard
+              </Badge>
+            )}
           </div>
           <Button
             variant="ghost"
@@ -130,6 +152,17 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
       {expanded && (
         <div className="p-4 border-t bg-white">
           <Accordion type="single" collapsible className="w-full">
+            {sdsData.physicalForm && (
+              <div className="mb-3 px-4 py-2 bg-gray-50 rounded-md text-sm">
+                <span className="font-medium">Physical Form:</span> {sdsData.physicalForm}
+                {isPowderHazard(sdsData) && (
+                  <div className="mt-1 text-orange-700 text-xs font-medium">
+                    ⚠️ Powder form requires additional precautions including powder containment hood and proper ventilation
+                  </div>
+                )}
+              </div>
+            )}
+            
             <AccordionItem value="hazards">
               <AccordionTrigger className="text-sm font-medium">
                 Hazard Classification

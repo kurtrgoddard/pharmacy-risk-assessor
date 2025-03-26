@@ -1,4 +1,3 @@
-
 /**
  * SDS PDF Parser
  * Extracts relevant safety information from SDS PDF documents
@@ -30,6 +29,7 @@ export const parseSdsPdf = async (pdfBlob: Blob, ingredientName: string): Promis
     let hazardSection = "";
     let ppeSection = "";
     let handlingSection = "";
+    let physicalPropertiesSection = "";
     
     // Extract text from each page
     let fullText = "";
@@ -63,15 +63,28 @@ export const parseSdsPdf = async (pdfBlob: Blob, ingredientName: string): Promis
       handlingSection = handlingMatch[1].trim();
     }
     
+    // Extract physical properties information (Section 9 in most SDS)
+    const physicalMatch = fullText.match(/(?:9\.\s*Physical and Chemical Properties)(.*?)(?:10\.\s*Stability)/si);
+    if (physicalMatch && physicalMatch[1]) {
+      physicalPropertiesSection = physicalMatch[1].trim();
+    }
+    
     console.log("Parsed SDS sections:", {
       hazardSection: hazardSection.substring(0, 50) + "...",
       ppeSection: ppeSection.substring(0, 50) + "...",
-      handlingSection: handlingSection.substring(0, 50) + "..."
+      handlingSection: handlingSection.substring(0, 50) + "...",
+      physicalPropertiesSection: physicalPropertiesSection.substring(0, 50) + "..."
     });
     
     // Process the extracted text to create structured SDS data
     // In a real implementation, this would use more sophisticated NLP techniques
-    const sdsData = processSdsSections(hazardSection, ppeSection, handlingSection, ingredientName);
+    const sdsData = processSdsSections(
+      hazardSection, 
+      ppeSection, 
+      handlingSection, 
+      physicalPropertiesSection,
+      ingredientName
+    );
     
     return sdsData;
   } catch (error) {
@@ -88,6 +101,7 @@ const processSdsSections = (
   hazardText: string, 
   ppeText: string, 
   handlingText: string,
+  physicalPropertiesText: string,
   ingredientName: string
 ): SDSData => {
   // Extract GHS classifications
@@ -105,8 +119,12 @@ const processSdsSections = (
   // Extract handling precautions
   const handlingPrecautions = extractHandlingPrecautions(handlingText);
   
+  // Extract physical form
+  const physicalForm = extractPhysicalForm(physicalPropertiesText);
+  
   return {
     ingredientName,
+    physicalForm,
     hazardClassification: {
       ghs: ghsClassifications,
       whmis: whmisClassifications
@@ -116,6 +134,32 @@ const processSdsSections = (
     handlingPrecautions,
     timestamp: Date.now()
   };
+};
+
+/**
+ * Extract physical form information from the physical properties section
+ */
+const extractPhysicalForm = (text: string): string | undefined => {
+  if (!text) return undefined;
+  
+  // Look for common physical state descriptions
+  const appearanceMatch = text.match(/(?:appearance|physical\s+(?:state|form)|form)(?:\s*:\s*)([^\.]*\.)/i);
+  if (appearanceMatch && appearanceMatch[1]) {
+    return appearanceMatch[1].trim();
+  }
+  
+  // Look for common physical state keywords
+  if (text.match(/\b(?:powder|crystalline\s+powder|white\s+powder)\b/i)) {
+    return "Powder";
+  } else if (text.match(/\b(?:liquid|solution|fluid)\b/i)) {
+    return "Liquid";
+  } else if (text.match(/\b(?:solid|crystal|crystalline)\b/i)) {
+    return "Solid";
+  } else if (text.match(/\b(?:gel|paste|cream|ointment)\b/i)) {
+    return "Semi-solid";
+  }
+  
+  return undefined;
 };
 
 /**
