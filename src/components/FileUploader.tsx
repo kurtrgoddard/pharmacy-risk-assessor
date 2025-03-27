@@ -90,14 +90,18 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
       
       console.log(`Extracted ${fullText.length} characters of text`);
       
-      // Improved detection for ingredient sections with more comprehensive patterns
+      // Enhanced patterns for ingredient detection - expanded to better match various PDF formats
       const ingredientSectionPatterns = [
         /ingredient[s:]|active ingredient[s:]/i,
         /drug[s:]\s*substance/i,
         /formulation:/i,
         /composition:/i,
         /formula[tion]*:/i,
-        /components?:/i
+        /components?:/i,
+        /active\s+substance/i,         // Added for European formulations
+        /medicinal\s+ingredient/i,     // Added for clinical formulations
+        /api\s+content/i,              // Active Pharmaceutical Ingredient
+        /contains:/i                   // Common in simple formulations
       ];
       
       // Log each pattern match separately for better debugging
@@ -108,16 +112,39 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
         }
       }
       
-      // Enhanced detection for specific ingredients
+      // Enhanced detection for specific common compounding ingredients with expanded list
       const commonIngredients = [
         "Omeprazole", "Ketoprofen", "Gabapentin", "Baclofen", "Ketamine", 
-        "Lidocaine", "Estradiol", "Clonidine", "Diclofenac", "Amitriptyline"
+        "Lidocaine", "Estradiol", "Clonidine", "Diclofenac", "Amitriptyline",
+        // Added more common compounding ingredients for better detection
+        "Metformin", "Progesterone", "Testosterone", "Hydrocortisone", "Fluconazole",
+        "Metronidazole", "Tretinoin", "Minoxidil", "Naltrexone", "Tacrolimus",
+        "Amlodipine", "Carvedilol", "Dexamethasone", "Lisinopril", "Ranitidine",
+        "Doxycycline", "Ibuprofen", "Melatonin", "Papaverine", "Sildenafil"
       ];
       
-      // Log if we find any known ingredients in the text
+      // Log if we find any known ingredients in the text - including partial matches for derivatives
+      const foundIngredients = [];
       for (const ingredient of commonIngredients) {
-        if (fullText.toLowerCase().includes(ingredient.toLowerCase())) {
+        // Use a more flexible regex to catch hyphenated variations and derivatives
+        const ingredientRegex = new RegExp(`${ingredient}(?:\\b|\\s|-|\\d)`, 'i');
+        if (ingredientRegex.test(fullText)) {
           console.log(`Detected ${ingredient} in document`);
+          foundIngredients.push(ingredient);
+        }
+      }
+      
+      if (foundIngredients.length > 0) {
+        console.log(`Found these ingredients: ${foundIngredients.join(', ')}`);
+      } else {
+        console.log("No known ingredients detected - this may be a custom formula");
+      }
+      
+      // Check for physical form descriptors
+      const physicalForms = ["cream", "gel", "ointment", "solution", "suspension", "tablet", "capsule", "powder", "liquid", "lotion"];
+      for (const form of physicalForms) {
+        if (fullText.toLowerCase().includes(form.toLowerCase())) {
+          console.log(`Detected physical form: ${form}`);
         }
       }
       
