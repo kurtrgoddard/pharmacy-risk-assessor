@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator } from '@/components';
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Info } from "lucide-react";
 import KeswickDataReview from '@/components/KeswickDataReview';
 import KeswickRiskAssessment, { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
-import { getSdsData, clearSdsCache } from '@/utils/mediscaAPI';
+import { getSdsData, clearSdsCache, isPowderFormIngredient, isCreamOrOintment } from '@/utils/mediscaAPI';
 
 // This would be replaced with actual PDF processing in production
 const mockProcessDocument = async (file: File, extractedText?: string): Promise<{
@@ -26,18 +25,38 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
       if (extractedText) {
         console.log("Analyzing extracted text for ingredients...");
         
-        // Check for common compounding ingredients in the text
+        // Check for common compounding ingredients in the text with improved detection
         const possibleIngredients = [
           "Ketoprofen", "Estradiol", "Gabapentin", "Ketamine", 
           "Baclofen", "Clonidine", "Diclofenac", "Amitriptyline", 
-          "Lidocaine", "Prilocaine", "Omeprazole"
+          "Lidocaine", "Prilocaine", "Omeprazole", "Progesterone", 
+          "Testosterone", "Diazepam", "Metronidazole", "Tacrolimus"
         ];
         
-        detectedIngredients = possibleIngredients.filter(ingredient => 
-          extractedText.toLowerCase().includes(ingredient.toLowerCase())
-        ).map(async (name) => {
+        // First, try to extract ingredients using better matching patterns
+        const ingredientSection = extractIngredientsSection(extractedText);
+        const explicitIngredients = extractExplicitIngredients(extractedText, ingredientSection);
+        
+        // If we found explicit ingredients, use those. Otherwise fall back to keyword search.
+        detectedIngredients = explicitIngredients.length > 0 
+          ? explicitIngredients
+          : possibleIngredients.filter(ingredient => 
+              extractedText.toLowerCase().includes(ingredient.toLowerCase())
+            );
+        
+        // If still no ingredients found, try more aggressive text pattern matching
+        if (detectedIngredients.length === 0) {
+          const potentialIngredients = extractPotentialIngredientsFromText(extractedText);
+          if (potentialIngredients.length > 0) {
+            detectedIngredients = potentialIngredients;
+          }
+        }
+        
+        // Map ingredient names to full objects with SDS data
+        detectedIngredients = await Promise.all(detectedIngredients.map(async (name) => {
           // Fetch SDS data for this ingredient
-          const sdsData = await getSdsData(name);
+          const sdsData = await getSdsData(typeof name === 'string' ? name : name.name);
+          const ingredientName = typeof name === 'string' ? name : name.name;
           
           // Determine if the ingredient has WHMIS hazards based on SDS
           const hasWhmisHazards = sdsData ? 
@@ -56,8 +75,8 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
           
           // Create ingredient object with values based on SDS
           return {
-            name,
-            manufacturer: "", // Default to empty string instead of "Medisca"
+            name: ingredientName,
+            manufacturer: "", // Default to empty string
             nioshStatus: {
               isOnNioshList: false,
               hazardLevel: "Non-Hazardous",
@@ -68,46 +87,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
             sdsDescription: sdsDescription,
             monographWarnings: ""
           };
-        });
-        
-        // Wait for all ingredient SDS data to be fetched
-        detectedIngredients = await Promise.all(detectedIngredients);
-        
-        // If no ingredients were detected, but we have text, try generic extraction
-        if (detectedIngredients.length === 0 && extractedText.length > 0) {
-          // Look for potential ingredient sections in the text
-          const ingredientMatch = extractedText.match(/ingredients?[:|\s]+([\w\s,]+)/i);
-          const formulaMatch = extractedText.match(/formula[:|\s]+([\w\s,]+)/i);
-          const activeMatch = extractedText.match(/active\s+ingredients?[:|\s]+([\w\s,]+)/i);
-          
-          // Use the first match we find
-          const matchResult = activeMatch || ingredientMatch || formulaMatch;
-          
-          if (matchResult && matchResult[1]) {
-            // Extract potential ingredient names (assume comma or newline separated)
-            const potentialIngredients = matchResult[1]
-              .split(/[,\n]/)
-              .map(i => i.trim())
-              .filter(i => i.length > 3); // Filter out very short strings
-            
-            console.log("Found potential ingredients through text extraction:", potentialIngredients);
-            
-            // Add these as detected ingredients
-            detectedIngredients = potentialIngredients.map(name => ({
-              name,
-              manufacturer: "", // Empty by default
-              nioshStatus: {
-                isOnNioshList: false,
-                hazardLevel: "Non-Hazardous",
-                hazardType: []
-              },
-              reproductiveToxicity: false,
-              whmisHazards: false,
-              sdsDescription: "",
-              monographWarnings: ""
-            }));
-          }
-        }
+        }));
         
         // If no ingredients were detected, add a placeholder that's clearly identifiable
         if (detectedIngredients.length === 0) {
@@ -143,35 +123,48 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         }];
       }
       
-      // Determine physical characteristics from text if available
-      let physicalCharacteristics = ["Semi-Solid"];
+      // Determine physical characteristics from both text and SDS data
+      let physicalCharacteristics = [];
+      
+      // Check ingredients for powder form based on SDS data
+      const hasPowderIngredient = await checkForPowderIngredients(detectedIngredients);
+      
+      // Check ingredients for cream/ointment form based on SDS data
+      const hasCreamOrOintment = await checkForCreamOrOintmentBase(detectedIngredients);
+      
+      // Check text content for physical form keywords
       if (extractedText) {
-        if (extractedText.toLowerCase().includes("cream")) {
-          physicalCharacteristics = ["Cream/Ointment"];
-        } else if (extractedText.toLowerCase().includes("ointment")) {
-          physicalCharacteristics = ["Cream/Ointment"];
-        } else if (extractedText.toLowerCase().includes("gel")) {
-          physicalCharacteristics = ["Cream/Ointment"];
-        } else if (extractedText.toLowerCase().includes("suspension")) {
-          physicalCharacteristics = ["Liquid"];
-        } else if (extractedText.toLowerCase().includes("powder")) {
-          physicalCharacteristics = ["Powder"];
-        } else if (extractedText.toLowerCase().includes("tablet")) {
-          physicalCharacteristics = ["Solid"];
-        } else if (extractedText.toLowerCase().includes("capsule")) {
-          physicalCharacteristics = ["Solid"];
+        if (extractedText.toLowerCase().includes("cream") || 
+            extractedText.toLowerCase().includes("ointment") || 
+            extractedText.toLowerCase().includes("lotion") || 
+            extractedText.toLowerCase().includes("gel") ||
+            hasCreamOrOintment) {
+          physicalCharacteristics.push("Cream/Ointment");
+        } 
+        
+        if (extractedText.toLowerCase().includes("suspension") || 
+            extractedText.toLowerCase().includes("solution") || 
+            extractedText.toLowerCase().includes("liquid")) {
+          physicalCharacteristics.push("Liquid");
+        } 
+        
+        if (extractedText.toLowerCase().includes("powder") || 
+            extractedText.toLowerCase().includes("granul") || 
+            extractedText.toLowerCase().includes("crystal") ||
+            hasPowderIngredient) {
+          physicalCharacteristics.push("Powder");
+        }
+        
+        if (extractedText.toLowerCase().includes("tablet") || 
+            extractedText.toLowerCase().includes("capsule") || 
+            extractedText.toLowerCase().includes("solid")) {
+          physicalCharacteristics.push("Solid");
         }
       }
       
-      // Check if any ingredients are powders (based on name)
-      const hasPowderIngredient = detectedIngredients.some(ing => 
-        ing.name.toLowerCase().includes("powder") || 
-        ing.name.toLowerCase().includes("granul") ||
-        ing.name.toLowerCase().includes("crystal")
-      );
-      
-      if (hasPowderIngredient && !physicalCharacteristics.includes("Powder")) {
-        physicalCharacteristics.push("Powder");
+      // Set a default if nothing was detected
+      if (physicalCharacteristics.length === 0) {
+        physicalCharacteristics = ["Semi-Solid"];
       }
       
       // Create fresh assessment data based on the detected ingredients
@@ -217,25 +210,26 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
           powderContainmentHood: hasPowderIngredient || physicalCharacteristics.includes("Powder"),
           localExhaustVentilation: hasPowderIngredient || physicalCharacteristics.includes("Powder")
         },
-        riskLevel: "Level A", // This will be recalculated correctly by the assessment component
-        rationale: "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding."
+        riskLevel: determineRiskLevel(detectedIngredients, physicalCharacteristics),
+        rationale: generateRiskRationale(detectedIngredients, physicalCharacteristics)
       };
       
-      // If we detect Ketamine or other narcotics, add inhalation to exposure risks
-      const narcoticKeywords = ["ketamine", "codeine", "morphine", "fentanyl", "hydrocodone", "oxycodone", "hydromorphone", "methadone", "buprenorphine", "tramadol"];
-      
-      const hasNarcoticIngredient = detectedIngredients.some(ing => 
-        narcoticKeywords.some(keyword => ing.name.toLowerCase().includes(keyword))
-      );
-      
-      if (hasNarcoticIngredient && !assessmentData.exposureRisks.includes("Inhalation")) {
-        assessmentData.exposureRisks.push("Inhalation");
-      }
-      
-      // If we have powders, add inhalation risk
+      // Add inhalation risk for powder ingredients
       if ((hasPowderIngredient || physicalCharacteristics.includes("Powder")) && 
           !assessmentData.exposureRisks.includes("Inhalation")) {
         assessmentData.exposureRisks.push("Inhalation");
+      }
+      
+      // Check for narcotics and update exposure risks and PPE
+      const hasNarcoticIngredient = checkForNarcoticIngredients(detectedIngredients);
+      if (hasNarcoticIngredient) {
+        // Add inhalation risk for narcotics if not already present
+        if (!assessmentData.exposureRisks.includes("Inhalation")) {
+          assessmentData.exposureRisks.push("Inhalation");
+        }
+        
+        // Update PPE for narcotics
+        assessmentData.ppe.mask = "N95 Respirator";
       }
       
       resolve({
@@ -244,6 +238,203 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
       });
     }, 2000);
   });
+};
+
+// Helper function to extract ingredients section from text
+const extractIngredientsSection = (text: string): string => {
+  // Look for different section headers that might indicate ingredients
+  const patterns = [
+    /ingredients?[:\s]+([\s\S]+?)(?:directions|preparation|method|storage|section|\d+\.)/i,
+    /active ingredients?[:\s]+([\s\S]+?)(?:inactive|excipients|directions|\d+\.)/i,
+    /composition[:\s]+([\s\S]+?)(?:directions|preparation|method|\d+\.)/i,
+    /formula[:\s]+([\s\S]+?)(?:directions|preparation|method|\d+\.)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      console.log(`Found ingredients section using pattern: ${pattern}`);
+      return match[1].trim();
+    }
+  }
+  
+  return "";
+};
+
+// Helper function to extract explicit ingredients from text
+const extractExplicitIngredients = (fullText: string, ingredientSection: string): any[] => {
+  const textToSearch = ingredientSection || fullText;
+  const ingredients = [];
+  
+  // Look for patterns like "X% DrugName" or "DrugName X mg"
+  const percentagePattern = /(\d+(?:\.\d+)?\s*%\s*)([\w\s-]+?)(?:\s+|$|\n)/g;
+  const dosagePattern = /([\w\s-]+?)(?:\s+)(\d+(?:\.\d+)?\s*(?:mg|g|mcg|ml))/g;
+  
+  let match;
+  while ((match = percentagePattern.exec(textToSearch)) !== null) {
+    const name = match[2].trim();
+    if (name.length > 2) { // Avoid tiny matches that might be errors
+      ingredients.push({ name, percentage: match[1] });
+    }
+  }
+  
+  // Reset regex state
+  dosagePattern.lastIndex = 0;
+  
+  while ((match = dosagePattern.exec(textToSearch)) !== null) {
+    const name = match[1].trim();
+    if (name.length > 2 && !ingredients.some(i => i.name === name)) {
+      ingredients.push({ name, dosage: match[2] });
+    }
+  }
+  
+  // If we found structured ingredients, return them
+  if (ingredients.length > 0) {
+    console.log("Extracted explicit ingredients:", ingredients);
+    return ingredients;
+  }
+  
+  // Otherwise try a simpler approach - look for lines that might be ingredients
+  const lines = textToSearch.split(/[\n\r]+/);
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    // Look for lines that might list an ingredient (containing chemical names)
+    if (/^[A-Z][a-z]+(?:\s+[A-Za-z]+){0,3}$/.test(trimmedLine) && trimmedLine.length > 3) {
+      ingredients.push({ name: trimmedLine });
+    }
+  }
+  
+  return ingredients;
+};
+
+// Helper function to extract potential ingredients from unstructured text
+const extractPotentialIngredientsFromText = (text: string): string[] => {
+  // List of common ingredients to look for in the text
+  const commonIngredients = [
+    "Omeprazole", "Ketoprofen", "Gabapentin", "Baclofen", "Ketamine", 
+    "Lidocaine", "Estradiol", "Clonidine", "Diclofenac", "Amitriptyline",
+    "Prilocaine", "Progesterone", "Testosterone", "Diazepam", "Metronidazole"
+  ];
+  
+  return commonIngredients.filter(ingredient => 
+    text.toLowerCase().includes(ingredient.toLowerCase())
+  );
+};
+
+// Helper to check if any ingredients are powder form based on SDS data
+const checkForPowderIngredients = async (ingredients: any[]): Promise<boolean> => {
+  for (const ingredient of ingredients) {
+    const name = typeof ingredient === 'string' ? ingredient : ingredient.name;
+    const sdsData = await getSdsData(name);
+    if (isPowderFormIngredient(sdsData)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Helper to check if any ingredients are cream/ointment based on SDS data
+const checkForCreamOrOintmentBase = async (ingredients: any[]): Promise<boolean> => {
+  for (const ingredient of ingredients) {
+    const name = typeof ingredient === 'string' ? ingredient : ingredient.name;
+    const sdsData = await getSdsData(name);
+    if (isCreamOrOintment(sdsData)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+// Helper to check for narcotic ingredients
+const checkForNarcoticIngredients = (ingredients: any[]): boolean => {
+  const narcoticKeywords = [
+    "ketamine", "codeine", "morphine", "fentanyl", 
+    "hydrocodone", "oxycodone", "hydromorphone", "methadone",
+    "buprenorphine", "tramadol", "opioid", "diazepam",
+    "lorazepam", "alprazolam", "clonazepam", "midazolam"
+  ];
+  
+  // Explicit exclusion for baclofen
+  for (const ingredient of ingredients) {
+    const name = typeof ingredient === 'string' ? ingredient : ingredient.name;
+    if (name.toLowerCase() === "baclofen") continue; // Skip baclofen - not a narcotic
+    
+    if (narcoticKeywords.some(keyword => name.toLowerCase().includes(keyword))) {
+      return true;
+    }
+  }
+  
+  return false;
+};
+
+// Determine risk level based on NAPRA guidelines
+const determineRiskLevel = (ingredients: any[], physicalCharacteristics: string[]): string => {
+  // Check for conditions that would require Level C
+  const hasHazardousIngredient = ingredients.some(ing => 
+    ing.nioshStatus?.isOnNioshList || 
+    ing.nioshStatus?.hazardLevel === "Hazardous" ||
+    ing.reproductiveToxicity
+  );
+  
+  if (hasHazardousIngredient) {
+    return "Level C";
+  }
+  
+  // Check for conditions that would require Level B
+  const hasPowderForm = physicalCharacteristics.includes("Powder");
+  const hasNarcotic = checkForNarcoticIngredients(ingredients);
+  const hasMultipleIngredients = ingredients.length > 1;
+  const hasWhmisHazards = ingredients.some(ing => ing.whmisHazards);
+  
+  if (hasPowderForm || hasNarcotic || (hasMultipleIngredients && hasWhmisHazards)) {
+    return "Level B";
+  }
+  
+  // If none of the above conditions are met, default to Level A
+  return "Level A";
+};
+
+// Generate risk rationale based on ingredients and characteristics
+const generateRiskRationale = (ingredients: any[], physicalCharacteristics: string[]): string => {
+  // Start with an empty rationale
+  let rationale = "";
+  
+  // Check for conditions that would require Level C
+  const hasHazardousIngredient = ingredients.some(ing => 
+    ing.nioshStatus?.isOnNioshList || 
+    ing.nioshStatus?.hazardLevel === "Hazardous" ||
+    ing.reproductiveToxicity
+  );
+  
+  if (hasHazardousIngredient) {
+    rationale = "This compound contains ingredients that are classified as hazardous according to NIOSH or have reproductive toxicity concerns. According to NAPRA guidelines, hazardous drugs require Level C containment strategies for safe compounding.";
+    return rationale;
+  }
+  
+  // Check for conditions that would require Level B
+  const hasPowderForm = physicalCharacteristics.includes("Powder");
+  const hasNarcotic = checkForNarcoticIngredients(ingredients);
+  const hasMultipleIngredients = ingredients.length > 1;
+  const hasWhmisHazards = ingredients.some(ing => ing.whmisHazards);
+  
+  if (hasPowderForm) {
+    rationale = "This compound involves powder formulation which requires Level B risk precautions according to NAPRA guidelines. Powder handling creates inhalation risks and requires appropriate ventilation systems and containment strategies.";
+    return rationale;
+  }
+  
+  if (hasNarcotic) {
+    rationale = "This compound contains controlled substances (narcotics/opioids) which require Level B risk precautions according to NAPRA guidelines due to their potency and potential for adverse health effects.";
+    return rationale;
+  }
+  
+  if (hasMultipleIngredients && hasWhmisHazards) {
+    rationale = "This multi-ingredient compound contains components with WHMIS hazard classifications. According to NAPRA guidelines, this combination of factors requires Level B precautions for safe compounding.";
+    return rationale;
+  }
+  
+  // Default to Level A
+  rationale = "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding.";
+  return rationale;
 };
 
 const Index = () => {

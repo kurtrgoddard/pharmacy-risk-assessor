@@ -90,15 +90,35 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
       
       console.log(`Extracted ${fullText.length} characters of text`);
       
-      // Look for ingredient title sections
-      const ingredientTitleMatch = fullText.match(/ingredient[s:]|active ingredient[s:]/i);
-      if (ingredientTitleMatch) {
-        console.log(`Found ingredient section at position ${ingredientTitleMatch.index}`);
+      // Improved detection for ingredient sections with more comprehensive patterns
+      const ingredientSectionPatterns = [
+        /ingredient[s:]|active ingredient[s:]/i,
+        /drug[s:]\s*substance/i,
+        /formulation:/i,
+        /composition:/i,
+        /formula[tion]*:/i,
+        /components?:/i
+      ];
+      
+      // Log each pattern match separately for better debugging
+      for (const pattern of ingredientSectionPatterns) {
+        const match = fullText.match(pattern);
+        if (match) {
+          console.log(`Found potential ingredient section with pattern "${pattern}" at position ${match.index}`);
+        }
       }
       
-      // Check if this seems to be an Omeprazole document
-      if (fullText.toLowerCase().includes("omeprazole")) {
-        console.log("Detected Omeprazole in document");
+      // Enhanced detection for specific ingredients
+      const commonIngredients = [
+        "Omeprazole", "Ketoprofen", "Gabapentin", "Baclofen", "Ketamine", 
+        "Lidocaine", "Estradiol", "Clonidine", "Diclofenac", "Amitriptyline"
+      ];
+      
+      // Log if we find any known ingredients in the text
+      for (const ingredient of commonIngredients) {
+        if (fullText.toLowerCase().includes(ingredient.toLowerCase())) {
+          console.log(`Detected ${ingredient} in document`);
+        }
       }
       
       return fullText;
