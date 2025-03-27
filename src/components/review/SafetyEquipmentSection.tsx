@@ -3,6 +3,7 @@ import React from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { AlertTriangle, Fan, ArrowDown, AlertCircle, AirVent, FlaskRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 interface SafetyEquipment {
   eyeWashStation: boolean;
@@ -130,7 +131,7 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           {hasPowderHazard && !safetyEquipment.localExhaustVentilation && (
             <div className="flex items-center mt-1 text-xs text-red-600">
               <AlertCircle className="w-3 h-3 mr-1" />
-              <span>Mandatory for powder formulations per NAPRA/USP guidelines</span>
+              <span>Mandatory for powder formulations per NAPRA guidelines</span>
             </div>
           )}
         </div>

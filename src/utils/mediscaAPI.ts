@@ -43,8 +43,8 @@ export const getMediscaSdsUrl = (ingredientName: string): string => {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
   
-  // Fixed Medisca Public SDS URL
-  return `https://www.medisca.com/Pages/ProductSections/SDS.aspx?ProductCode=${cleanName}`;
+  // Updated Medisca Public SDS URL format - using their public SDS access page
+  return `https://www.medisca.com/sds-search?q=${cleanName}`;
 };
 
 // Function to open SDS document in new tab
@@ -191,6 +191,43 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
     baseData.hazardClassification.whmis = ["Not classified as hazardous according to WHMIS"];
     baseData.exposureRisks = ["Minimal exposure risks under normal handling conditions"];
   }
+  // For Clonidine - ensure data is available as mentioned in the issues
+  else if (lowercaseName.includes("clonidine")) {
+    baseData.physicalForm = "White to off-white crystalline powder";
+    baseData.hazardClassification.ghs = ["Acute Toxicity Category 3"];
+    baseData.hazardClassification.whmis = ["Health Hazard"];
+    baseData.exposureRisks = ["Toxic if swallowed", "May cause drowsiness"];
+  }
   
   return baseData;
+};
+
+// Function to check if an ingredient is a powder based on SDS data
+export const isPowderFormIngredient = (sdsData: SDSData | null): boolean => {
+  if (!sdsData || !sdsData.physicalForm) return false;
+  
+  const powderKeywords = ["powder", "crystalline", "granular", "dust", "solid"];
+  return powderKeywords.some(keyword => 
+    sdsData.physicalForm!.toLowerCase().includes(keyword)
+  );
+};
+
+// Function to check if an ingredient requires special ventilation based on SDS data
+export const requiresSpecialVentilation = (sdsData: SDSData | null): boolean => {
+  if (!sdsData) return false;
+  
+  // Check physical form for powder characteristics
+  const isPowder = isPowderFormIngredient(sdsData);
+  
+  // Check hazard classification for respiratory concerns
+  const hasRespiratoryHazard = sdsData.hazardClassification.ghs.some(hazard => 
+    hazard.toLowerCase().includes("respiratory") || hazard.toLowerCase().includes("inhalation")
+  );
+  
+  // Check exposure risks for inhalation concerns
+  const hasInhalationRisk = sdsData.exposureRisks.some(risk => 
+    risk.toLowerCase().includes("inhalation") || risk.toLowerCase().includes("respiratory")
+  );
+  
+  return isPowder || hasRespiratoryHazard || hasInhalationRisk;
 };
