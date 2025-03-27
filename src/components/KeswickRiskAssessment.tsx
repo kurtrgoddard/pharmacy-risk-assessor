@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, ShieldAlert, ShieldCheck, Info, Download, Eye } from "lucide-react";
@@ -12,8 +13,8 @@ export interface ActiveIngredient {
   nioshStatus: {
     isOnNioshList: boolean;
     table?: string;
-    hazardLevel?: "High Hazard" | "Moderate Hazard" | "Non-Hazardous";
-    hazardType?: string[];
+    hazardLevel: "High Hazard" | "Moderate Hazard" | "Non-Hazardous"; // Made required, not optional
+    hazardType: string[]; // Made required, not optional
   };
   reproductiveToxicity: boolean;
   whmisHazards: boolean;

@@ -7,38 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SDSInfoSection from "./SDSInfoSection";
-
-interface ActiveIngredient {
-  name: string;
-  manufacturer: string;
-  nioshStatus: {
-    isOnNioshList: boolean;
-    hazardLevel: string;
-    hazardType: string[];
-    table?: string;
-  };
-  reproductiveToxicity: boolean;
-  whmisHazards: boolean;
-  sdsDescription: string;
-  monographWarnings: string;
-  sdsData?: {
-    ingredientName: string;
-    physicalForm?: string;
-    hazardClassification: {
-      ghs: string[];
-      whmis: string[];
-    };
-    recommendedPPE: {
-      gloves: string;
-      respiratoryProtection: string;
-      eyeProtection: string;
-      bodyProtection: string;
-    };
-    exposureRisks: string[];
-    handlingPrecautions: string[];
-    timestamp: number;
-  };
-}
+import { ActiveIngredient } from "../KeswickRiskAssessment"; // Import the shared interface
 
 interface ActiveIngredientsSectionProps {
   activeIngredients: ActiveIngredient[];
