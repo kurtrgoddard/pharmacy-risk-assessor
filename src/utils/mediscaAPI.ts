@@ -43,8 +43,8 @@ export const getMediscaSdsUrl = (ingredientName: string): string => {
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
   
-  // Updated Medisca Public SDS URL format - using their public SDS access page
-  return `https://www.medisca.com/sds-search?q=${cleanName}`;
+  // Updated Medisca Public SDS URL format - using their direct SDS search path
+  return `https://www.medisca.com/Pages/SdsSearch?product=${encodeURIComponent(ingredientName)}`;
 };
 
 // Function to open SDS document in new tab
@@ -118,7 +118,7 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
   // Customize SDS data based on ingredient
   const lowercaseName = ingredientName.toLowerCase();
   
-  // Define physical form based on known ingredients
+  // Fix: Add omeprazole to the known ingredients
   if (lowercaseName.includes("ketoprofen")) {
     baseData.physicalForm = "White crystalline powder";
     baseData.hazardClassification.ghs = [
@@ -156,6 +156,10 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
     baseData.hazardClassification.whmis = ["Health Hazard"];
     baseData.exposureRisks = ["Harmful if swallowed", "May cause drowsiness"];
     baseData.recommendedPPE.respiratoryProtection = "Dust mask recommended when handling powder";
+    // Fix: Clarify that baclofen is not a controlled substance/narcotic
+    baseData.handlingPrecautions.push(
+      "Not a controlled substance but requires appropriate handling"
+    );
   }
   else if (lowercaseName.includes("clonidine")) {
     baseData.physicalForm = "White to off-white crystalline powder";
@@ -186,17 +190,31 @@ const generateMockSdsData = (ingredientName: string): SDSData => {
     );
   }
   else if (lowercaseName.includes("omeprazole")) {
+    // Fix: Add proper data for Omeprazole
     baseData.physicalForm = "White to off-white powder";
     baseData.hazardClassification.ghs = ["Not classified as hazardous according to GHS"];
     baseData.hazardClassification.whmis = ["Not classified as hazardous according to WHMIS"];
     baseData.exposureRisks = ["Minimal exposure risks under normal handling conditions"];
+    baseData.handlingPrecautions.push(
+      "Store in tightly closed container",
+      "Protect from light"
+    );
   }
-  // For Clonidine - ensure data is available as mentioned in the issues
-  else if (lowercaseName.includes("clonidine")) {
-    baseData.physicalForm = "White to off-white crystalline powder";
-    baseData.hazardClassification.ghs = ["Acute Toxicity Category 3"];
-    baseData.hazardClassification.whmis = ["Health Hazard"];
-    baseData.exposureRisks = ["Toxic if swallowed", "May cause drowsiness"];
+  // Handle cream and ointment base ingredients
+  else if (lowercaseName.includes("cream base") || 
+           lowercaseName.includes("ointment") || 
+           lowercaseName.includes("emollient") || 
+           lowercaseName.includes("lotion") ||
+           lowercaseName.includes("creme")) {
+    // Fix: Properly identify cream/ointment bases
+    baseData.physicalForm = "Semi-solid cream/ointment";
+    baseData.hazardClassification.ghs = ["Not classified as hazardous according to GHS"];
+    baseData.hazardClassification.whmis = ["Not classified as hazardous according to WHMIS"];
+    baseData.exposureRisks = ["Minimal exposure risks under normal handling conditions"];
+    baseData.handlingPrecautions.push(
+      "Store at controlled room temperature",
+      "Protect from excessive heat"
+    );
   }
   
   return baseData;
@@ -208,6 +226,16 @@ export const isPowderFormIngredient = (sdsData: SDSData | null): boolean => {
   
   const powderKeywords = ["powder", "crystalline", "granular", "dust", "solid"];
   return powderKeywords.some(keyword => 
+    sdsData.physicalForm!.toLowerCase().includes(keyword)
+  );
+};
+
+// Function to check if an ingredient is a cream or ointment based on SDS data
+export const isCreamOrOintment = (sdsData: SDSData | null): boolean => {
+  if (!sdsData || !sdsData.physicalForm) return false;
+  
+  const creamKeywords = ["cream", "ointment", "semi-solid", "emollient", "lotion"];
+  return creamKeywords.some(keyword => 
     sdsData.physicalForm!.toLowerCase().includes(keyword)
   );
 };

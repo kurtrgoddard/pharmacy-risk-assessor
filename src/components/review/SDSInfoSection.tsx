@@ -64,13 +64,17 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   };
   
   const isNarcotic = (name: string): boolean => {
+    // Fix: Remove baclofen from the list of narcotics
     const narcoticKeywords = [
       "ketamine", "codeine", "morphine", "fentanyl", 
       "hydrocodone", "oxycodone", "hydromorphone", "methadone",
-      "buprenorphine", "tramadol"
+      "buprenorphine", "tramadol", "opioid", "diazepam",
+      "lorazepam", "alprazolam", "clonazepam", "midazolam"
     ];
     
-    // Baclofen should NOT be classified as a narcotic - fixing this
+    // Explicitly exclude baclofen and other non-narcotics that might contain substring matches
+    if (name.toLowerCase() === "baclofen") return false;
+    
     return narcoticKeywords.some(keyword => 
       name.toLowerCase().includes(keyword)
     );
