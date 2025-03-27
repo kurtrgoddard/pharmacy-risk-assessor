@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Plus, Minus } from "lu
 import { Button } from "@/components/ui/button";
 import SDSInfoSection from "./SDSInfoSection";
 import { ActiveIngredient } from "../KeswickRiskAssessment"; // Import the shared interface
-import { SDSData, getSdsDocument, fetchSdsData } from "@/utils/mediscaAPI";
+import { SDSData, openSdsDocument, getSdsData } from "@/utils/mediscaAPI";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -40,7 +41,7 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
     setSdsError(prev => ({ ...prev, [ingredientName]: null }));
     
     try {
-      const data = await fetchSdsData(ingredientName);
+      const data = await getSdsData(ingredientName);
       setSdsData(prev => ({ ...prev, [ingredientName]: data }));
       onActiveIngredientChange(index, "sdsData", data); // Update the SDS data in the parent component
     } catch (error: any) {
@@ -55,7 +56,7 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
   
   const handleViewSds = async (ingredientName: string) => {
     try {
-      getSdsDocument(ingredientName);
+      openSdsDocument(ingredientName);
       console.log(`Opening SDS for ${ingredientName}`);
     } catch (error) {
       console.error(`Error opening SDS for ${ingredientName}:`, error);
