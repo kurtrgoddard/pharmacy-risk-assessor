@@ -3,7 +3,7 @@ import { AlertTriangle, Check, Edit, Info, ShieldCheck, ShieldAlert } from "luci
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { KeswickAssessmentData } from "./KeswickRiskAssessment";
+import { KeswickAssessmentData, ActiveIngredient } from "./KeswickRiskAssessment";
 import { getNioshHazardInfo, getHazardLevel, getPPERecommendations, HazardLevel, determineNAPRARiskLevel, generateNAPRARationale } from "@/utils/nioshData";
 import { Badge } from "@/components/ui/badge";
 

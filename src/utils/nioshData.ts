@@ -5,7 +5,7 @@ import { SDSData } from "./mediscaAPI";
 
 export interface NioshDrugInfo {
   table: "Table 1" | "Table 2" | null;
-  hazardType: string[];
+  hazardType: string[]; // Ensure this is always an array, never undefined
   requiresSpecialHandling: boolean;
 }
 
@@ -170,7 +170,7 @@ export const getNioshHazardInfo = (drugName: string): NioshDrugInfo => {
   console.log(`No NIOSH match found for ${normalizedName}, classifying as non-hazardous`);
   return {
     table: null,
-    hazardType: [],
+    hazardType: [], // Always return an empty array, not undefined
     requiresSpecialHandling: false
   };
 };

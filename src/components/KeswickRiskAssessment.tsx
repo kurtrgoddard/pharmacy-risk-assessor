@@ -13,8 +13,8 @@ export interface ActiveIngredient {
   nioshStatus: {
     isOnNioshList: boolean;
     table?: string;
-    hazardLevel: "High Hazard" | "Moderate Hazard" | "Non-Hazardous"; // Made required, not optional
-    hazardType: string[]; // Made required, not optional
+    hazardLevel: "High Hazard" | "Moderate Hazard" | "Non-Hazardous"; // Required field
+    hazardType: string[]; // Required field
   };
   reproductiveToxicity: boolean;
   whmisHazards: boolean;
