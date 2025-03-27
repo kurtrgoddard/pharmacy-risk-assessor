@@ -118,6 +118,11 @@ export const nioshDrugDatabase: Record<string, NioshDrugInfo> = {
     table: null,
     hazardType: [],
     requiresSpecialHandling: false
+  },
+  "omeprazole": {
+    table: null,
+    hazardType: [],
+    requiresSpecialHandling: false
   }
 };
 
@@ -441,7 +446,7 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
   const hasPowderRisk = isPowderFormulation || hasIngredientInPowderForm || powderIngredientNames;
   
   // Check for narcotic/controlled substances that require special handling
-  const narcoticKeywords = ["ketamine", "baclofen", "codeine", "morphine", "fentanyl", "hydrocodone", "oxycodone"];
+  const narcoticKeywords = ["ketamine", "codeine", "morphine", "fentanyl", "hydrocodone", "oxycodone"];
   const hasNarcoticIngredients = assessmentData.activeIngredients.some(
     (ingredient: any) => narcoticKeywords.some(keyword => 
       ingredient.name.toLowerCase().includes(keyword)
@@ -456,25 +461,12 @@ export const determineNAPRARiskLevel = (assessmentData: any): NAPRARiskLevel => 
     hasNarcoticIngredients
   });
   
-  // CRITICAL UPDATE: All powder formulations must be Level B minimum
+  // CRITICAL FIX: All powder formulations must be Level B minimum (no risk of flipping to C)
   if (hasPowderRisk || hasNarcoticIngredients) {
     console.log("Level B assigned - Powder formulation or narcotic detected (mandatory Level B per NAPRA)");
     
-    // If powder has significant hazard classifications, escalate to Level C
-    if (hasTable2Hazards || hasModSdsHazard || hasWHMISHazards) {
-      // Only escalate to Level C for truly hazardous powders
-      const isHighlyHazardous = assessmentData.activeIngredients.some(
-        (ingredient: any) => 
-          (ingredient.nioshStatus?.table === "Table 1") || 
-          (ingredient.reproductiveToxicity === true)
-      );
-      
-      if (isHighlyHazardous) {
-        console.log("Level C assigned - Highly hazardous drug in powder form");
-        return "Level C";
-      }
-    }
-    
+    // Only escalate to Level C for truly hazardous powders that are already identified
+    // as NIOSH Table 1 or reproductive toxins (handled above)
     return "Level B";
   }
   

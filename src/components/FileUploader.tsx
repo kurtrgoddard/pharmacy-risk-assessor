@@ -35,147 +35,175 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      validateAndSetFile(files[0]);
+      handleFileSelection(files[0]);
     }
   };
 
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      validateAndSetFile(e.target.files[0]);
+  const handleFileSelection = async (file: File) => {
+    setIsLoading(true);
+    setError(null);
+    
+    if (file.type !== 'application/pdf') {
+      setError("Please upload a PDF file");
+      setIsLoading(false);
+      toast.error("Invalid file format. Please upload a PDF file.");
+      return;
     }
-  };
-
-  const extractTextFromPDF = async (file: File): Promise<string> => {
+    
     try {
+      // Extract text from PDF
+      const extractedText = await extractTextFromPdf(file);
+      console.log("Extracted text from PDF:", extractedText.substring(0, 500) + "...");
+      
+      // Attach the extracted text to the file object for use later
+      const fileWithExtractedText = Object.assign(file, { extractedText });
+      
+      setSelectedFile(fileWithExtractedText);
+      onFileUploaded(fileWithExtractedText, extractedText);
+    } catch (err) {
+      console.error("Error processing PDF:", err);
+      setError("Error processing PDF");
+      toast.error("Failed to process PDF. Please try again or try another file.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const extractTextFromPdf = async (file: File): Promise<string> => {
+    try {
+      // Read the file as array buffer
       const arrayBuffer = await file.arrayBuffer();
+      
+      // Load the PDF document
       const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      console.log(`PDF loaded: ${pdf.numPages} pages`);
       
-      let extractedText = '';
-      
-      // Process all pages for more comprehensive extraction
+      // Extract text from each page
+      let fullText = "";
       for (let i = 1; i <= pdf.numPages; i++) {
+        console.log(`Processing page ${i}/${pdf.numPages}...`);
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        
-        // Improved text extraction with spacing consideration
-        const pageText = textContent.items
-          .map((item: any) => item.str)
-          .join(' ');
-          
-        extractedText += pageText + ' ';
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + "\n\n";
       }
       
-      console.log("Extracted PDF Text (first 500 chars):", extractedText.substring(0, 500));
-      return extractedText;
+      console.log(`Extracted ${fullText.length} characters of text`);
+      
+      // Look for ingredient title sections
+      const ingredientTitleMatch = fullText.match(/ingredient[s:]|active ingredient[s:]/i);
+      if (ingredientTitleMatch) {
+        console.log(`Found ingredient section at position ${ingredientTitleMatch.index}`);
+      }
+      
+      // Check if this seems to be an Omeprazole document
+      if (fullText.toLowerCase().includes("omeprazole")) {
+        console.log("Detected Omeprazole in document");
+      }
+      
+      return fullText;
     } catch (error) {
       console.error("Error extracting text from PDF:", error);
       throw new Error("Failed to extract text from PDF");
     }
   };
 
-  const validateAndSetFile = async (file: File) => {
-    // Reset everything before processing new file
-    setError(null);
-    setIsLoading(true);
-    setSelectedFile(null);
-    
-    // Clear SDS cache when a new file is uploaded to prevent data persistence
-    clearSdsCache();
-    
-    try {
-      // Check if file is PDF
-      if (file.type !== "application/pdf") {
-        toast.error("Please upload a PDF file");
-        setError("Only PDF files are supported");
-        setIsLoading(false);
-        return;
-      }
-      
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File size exceeds 10MB limit");
-        setError("File size exceeds 10MB limit");
-        setIsLoading(false);
-        return;
-      }
-
-      // Extract text from PDF with improved extraction
-      const extractedText = await extractTextFromPDF(file);
-      
-      // Add the extracted text to the file object for later use
-      const fileWithText = Object.assign(file, { extractedText });
-      
-      setSelectedFile(fileWithText);
-      onFileUploaded(fileWithText, extractedText);
-      toast.success("File processed successfully");
-    } catch (error) {
-      console.error("Error processing file:", error);
-      toast.error("Failed to process PDF file");
-      setError("Failed to extract data from PDF");
-    } finally {
-      setIsLoading(false);
+  const handleButtonClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current?.click();
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileSelection(files[0]);
+    }
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto animate-fade-up">
-      <div 
-        className={`file-drop-area p-8 flex flex-col items-center justify-center cursor-pointer group ${isDragging ? 'active' : ''} ${isLoading ? 'opacity-75 pointer-events-none' : ''}`}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        onClick={triggerFileInput}
-      >
-        <input 
-          type="file"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileInputChange}
-          accept=".pdf"
-          disabled={isLoading}
-        />
-        
-        <div className="w-16 h-16 rounded-full bg-pharmacy-blue/10 flex items-center justify-center mb-4 group-hover:bg-pharmacy-blue/20 transition-all duration-300">
-          <Upload className="w-8 h-8 text-pharmacy-blue" />
+    <div
+      className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+        isDragging 
+          ? 'border-pharmacy-blue bg-pharmacy-blue/5' 
+          : isLoading 
+            ? 'border-pharmacy-neutral cursor-wait' 
+            : selectedFile 
+              ? 'border-green-400 bg-green-50/30' 
+              : 'border-pharmacy-neutral hover:border-pharmacy-blue/70 hover:bg-pharmacy-blue/5'
+      }`}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleInputChange}
+        accept=".pdf"
+        className="hidden"
+      />
+      
+      <div className="flex flex-col items-center justify-center space-y-4">
+        <div className={`w-16 h-16 rounded-full flex items-center justify-center ${
+          isLoading 
+            ? 'bg-pharmacy-neutral/30'
+            : selectedFile
+              ? 'bg-green-100'
+              : 'bg-pharmacy-blue/10'
+        }`}>
+          {isLoading ? (
+            <div className="w-8 h-8 border-4 border-pharmacy-blue/30 border-t-pharmacy-blue rounded-full animate-spin" />
+          ) : selectedFile ? (
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <Upload className="h-8 w-8 text-pharmacy-blue/70" />
+          )}
         </div>
         
-        <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-2">
-          {selectedFile ? selectedFile.name : "Upload PDF Document"}
-        </h3>
-        
-        <p className="text-pharmacy-gray text-sm text-center max-w-md mb-2">
-          Drag and drop your technical PDF document here, or click to browse
-        </p>
-        
-        <p className="text-pharmacy-gray/70 text-xs">
-          Supports: PDF (Max 10MB)
-        </p>
-        
-        {isLoading && (
-          <div className="mt-4 flex items-center justify-center">
-            <div className="animate-spin h-5 w-5 border-2 border-pharmacy-blue border-t-transparent rounded-full mr-2"></div>
-            <span className="text-sm text-pharmacy-gray">Processing PDF...</span>
+        {isLoading ? (
+          <div>
+            <h3 className="text-lg font-medium text-pharmacy-darkBlue">Processing PDF...</h3>
+            <p className="text-sm text-pharmacy-gray mt-1">Extracting text and analyzing content</p>
+          </div>
+        ) : selectedFile ? (
+          <div>
+            <h3 className="text-lg font-medium text-green-600">{selectedFile.name}</h3>
+            <p className="text-sm text-pharmacy-gray mt-1">
+              PDF uploaded successfully - {(selectedFile.size / 1024).toFixed(1)} KB
+            </p>
+            <button
+              onClick={handleButtonClick}
+              className="text-sm text-pharmacy-blue hover:text-pharmacy-darkBlue mt-2"
+            >
+              Upload a different file
+            </button>
+          </div>
+        ) : (
+          <div>
+            <h3 className="text-lg font-medium text-pharmacy-darkBlue">Upload PDF Document</h3>
+            <p className="text-sm text-pharmacy-gray mt-1">
+              Drag & drop your formula PDF file here, or click to browse
+            </p>
+            <p className="text-xs text-pharmacy-gray/70 mt-4">
+              Accepts PDFs from PCCA, Medisca or other compounding formula sources
+            </p>
+            
+            <button
+              onClick={handleButtonClick}
+              className="mt-4 px-4 py-2 bg-pharmacy-blue/10 text-pharmacy-blue rounded-md hover:bg-pharmacy-blue/20 transition-colors text-sm font-medium"
+            >
+              Select PDF file
+            </button>
           </div>
         )}
         
         {error && (
-          <p className="mt-4 text-sm text-red-500">
-            {error}
-          </p>
+          <p className="text-sm text-red-600 mt-2">{error}</p>
         )}
       </div>
-      
-      {selectedFile && !isLoading && (
-        <div className="mt-4 text-center">
-          <p className="text-sm text-pharmacy-gray">
-            File selected: <span className="font-medium text-pharmacy-darkBlue">{selectedFile.name}</span>
-          </p>
-        </div>
-      )}
     </div>
   );
 };

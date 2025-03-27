@@ -31,7 +31,7 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <FlaskRound className="w-4 h-4 text-orange-500 mt-0.5 mr-2 flex-shrink-0" />
           <div className="text-sm text-orange-800">
             <p className="font-medium">Powder Hazard Detected</p>
-            <p className="text-xs mt-1">Powder-based compounds require Level B classification and additional safety equipment including a powder containment hood and proper ventilation. These items have been automatically recommended below based on NAPRA guidelines.</p>
+            <p className="text-xs mt-1">Powder-based compounds require Level B classification minimum and additional safety equipment including a powder containment hood and proper ventilation. These items have been automatically recommended below based on NAPRA guidelines.</p>
           </div>
         </div>
       )}
@@ -79,7 +79,13 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <div className="flex items-center space-x-2">
             <Checkbox
               checked={safetyEquipment.powderContainmentHood || false}
-              onCheckedChange={(checked) => onNestedObjectChange("safetyEquipment", "powderContainmentHood", !!checked)}
+              onCheckedChange={(checked) => {
+                // If this is a powder hazard and user is trying to uncheck, show warning
+                if (hasPowderHazard && !checked && isEditing) {
+                  toast.warning("Powder containment hood is required for powder-based formulations");
+                }
+                onNestedObjectChange("safetyEquipment", "powderContainmentHood", !!checked);
+              }}
               disabled={!isEditing}
               id="powder-containment-hood"
             />
@@ -107,7 +113,13 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
           <div className="flex items-center space-x-2">
             <Checkbox
               checked={safetyEquipment.localExhaustVentilation || false}
-              onCheckedChange={(checked) => onNestedObjectChange("safetyEquipment", "localExhaustVentilation", !!checked)}
+              onCheckedChange={(checked) => {
+                // If this is a powder hazard and user is trying to uncheck, show warning
+                if (hasPowderHazard && !checked && isEditing) {
+                  toast.warning("Local exhaust ventilation is required for powder-based formulations");
+                }
+                onNestedObjectChange("safetyEquipment", "localExhaustVentilation", !!checked);
+              }}
               disabled={!isEditing}
               id="local-exhaust-ventilation"
             />
@@ -135,7 +147,7 @@ const SafetyEquipmentSection: React.FC<SafetyEquipmentSectionProps> = ({
               <li>Regular verification of airflow and filtration systems</li>
               <li>Separate area from other compounding activities when handling powders</li>
               <li>All powder formulations must be classified as Level B minimum</li>
-              <li><strong>Special attention for narcotic powders like Ketamine and Baclofen</strong></li>
+              <li><strong>Special attention for controlled substances in powder form</strong></li>
             </ul>
           </div>
         </div>

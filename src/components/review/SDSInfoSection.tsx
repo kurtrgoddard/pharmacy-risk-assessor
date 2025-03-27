@@ -25,7 +25,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   
   useEffect(() => {
     // Auto-expand if hazardous or is a narcotic/powder
-    if (sdsData && (isHazardous(sdsData) || isNarcotic(ingredientName) || isPowderHazard(sdsData))) {
+    if (sdsData && (isHazardous(sdsData) || isPowderHazard(sdsData))) {
       setExpanded(true);
     }
   }, [sdsData, ingredientName]);
@@ -65,11 +65,12 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   
   const isNarcotic = (name: string): boolean => {
     const narcoticKeywords = [
-      "ketamine", "baclofen", "codeine", "morphine", "fentanyl", 
+      "ketamine", "codeine", "morphine", "fentanyl", 
       "hydrocodone", "oxycodone", "hydromorphone", "methadone",
       "buprenorphine", "tramadol"
     ];
     
+    // Baclofen should NOT be classified as a narcotic - fixing this
     return narcoticKeywords.some(keyword => 
       name.toLowerCase().includes(keyword)
     );
@@ -121,7 +122,13 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
       onViewSds();
     } else {
       // Use the updated function to open SDS in a new tab
-      openSdsDocument(ingredientName);
+      try {
+        openSdsDocument(ingredientName);
+        console.log(`Opening SDS for ${ingredientName}`);
+      } catch (error) {
+        console.error(`Error opening SDS for ${ingredientName}:`, error);
+        toast.error("Could not retrieve SDS at this time. Please try again later.");
+      }
     }
   };
   
@@ -146,7 +153,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
         <div className="flex items-center justify-between">
           <div className="flex items-center text-sm text-gray-600">
             <Info className="w-4 h-4 mr-2 text-blue-500" />
-            <span>SDS information not available for {ingredientName}</span>
+            <span>SDS information currently unavailable for {ingredientName}</span>
             {isNarcotic(ingredientName) && getNarcoticBadge(ingredientName)}
           </div>
           <Button

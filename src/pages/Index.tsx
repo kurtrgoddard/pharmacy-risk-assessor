@@ -30,7 +30,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         const possibleIngredients = [
           "Ketoprofen", "Estradiol", "Gabapentin", "Ketamine", 
           "Baclofen", "Clonidine", "Diclofenac", "Amitriptyline", 
-          "Lidocaine", "Prilocaine"
+          "Lidocaine", "Prilocaine", "Omeprazole"
         ];
         
         detectedIngredients = possibleIngredients.filter(ingredient => 
@@ -57,7 +57,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
           // Create ingredient object with values based on SDS
           return {
             name,
-            manufacturer: "Medisca",
+            manufacturer: "", // Default to empty string instead of "Medisca"
             nioshStatus: {
               isOnNioshList: false,
               hazardLevel: "Non-Hazardous",
@@ -73,11 +73,48 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         // Wait for all ingredient SDS data to be fetched
         detectedIngredients = await Promise.all(detectedIngredients);
         
-        // If no ingredients were detected, add a placeholder
+        // If no ingredients were detected, but we have text, try generic extraction
+        if (detectedIngredients.length === 0 && extractedText.length > 0) {
+          // Look for potential ingredient sections in the text
+          const ingredientMatch = extractedText.match(/ingredients?[:|\s]+([\w\s,]+)/i);
+          const formulaMatch = extractedText.match(/formula[:|\s]+([\w\s,]+)/i);
+          const activeMatch = extractedText.match(/active\s+ingredients?[:|\s]+([\w\s,]+)/i);
+          
+          // Use the first match we find
+          const matchResult = activeMatch || ingredientMatch || formulaMatch;
+          
+          if (matchResult && matchResult[1]) {
+            // Extract potential ingredient names (assume comma or newline separated)
+            const potentialIngredients = matchResult[1]
+              .split(/[,\n]/)
+              .map(i => i.trim())
+              .filter(i => i.length > 3); // Filter out very short strings
+            
+            console.log("Found potential ingredients through text extraction:", potentialIngredients);
+            
+            // Add these as detected ingredients
+            detectedIngredients = potentialIngredients.map(name => ({
+              name,
+              manufacturer: "", // Empty by default
+              nioshStatus: {
+                isOnNioshList: false,
+                hazardLevel: "Non-Hazardous",
+                hazardType: []
+              },
+              reproductiveToxicity: false,
+              whmisHazards: false,
+              sdsDescription: "",
+              monographWarnings: ""
+            }));
+          }
+        }
+        
+        // If no ingredients were detected, add a placeholder that's clearly identifiable
         if (detectedIngredients.length === 0) {
+          const fileName = file.name.replace('.pdf', '').replace(/_/g, ' ');
           detectedIngredients = [{
-            name: "Unknown Ingredient",
-            manufacturer: "Please specify",
+            name: `Unidentified ingredient in ${fileName}`,
+            manufacturer: "", // Empty by default
             nioshStatus: {
               isOnNioshList: false,
               hazardLevel: "Non-Hazardous",
@@ -92,8 +129,8 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
       } else {
         // Fallback if no text was extracted
         detectedIngredients = [{
-          name: "Unknown Ingredient",
-          manufacturer: "Please specify",
+          name: "Extraction failed - please enter ingredients manually",
+          manufacturer: "",
           nioshStatus: {
             isOnNioshList: false,
             hazardLevel: "Non-Hazardous",
@@ -106,6 +143,37 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         }];
       }
       
+      // Determine physical characteristics from text if available
+      let physicalCharacteristics = ["Semi-Solid"];
+      if (extractedText) {
+        if (extractedText.toLowerCase().includes("cream")) {
+          physicalCharacteristics = ["Cream/Ointment"];
+        } else if (extractedText.toLowerCase().includes("ointment")) {
+          physicalCharacteristics = ["Cream/Ointment"];
+        } else if (extractedText.toLowerCase().includes("gel")) {
+          physicalCharacteristics = ["Cream/Ointment"];
+        } else if (extractedText.toLowerCase().includes("suspension")) {
+          physicalCharacteristics = ["Liquid"];
+        } else if (extractedText.toLowerCase().includes("powder")) {
+          physicalCharacteristics = ["Powder"];
+        } else if (extractedText.toLowerCase().includes("tablet")) {
+          physicalCharacteristics = ["Solid"];
+        } else if (extractedText.toLowerCase().includes("capsule")) {
+          physicalCharacteristics = ["Solid"];
+        }
+      }
+      
+      // Check if any ingredients are powders (based on name)
+      const hasPowderIngredient = detectedIngredients.some(ing => 
+        ing.name.toLowerCase().includes("powder") || 
+        ing.name.toLowerCase().includes("granul") ||
+        ing.name.toLowerCase().includes("crystal")
+      );
+      
+      if (hasPowderIngredient && !physicalCharacteristics.includes("Powder")) {
+        physicalCharacteristics.push("Powder");
+      }
+      
       // Create fresh assessment data based on the detected ingredients
       const assessmentData: KeswickAssessmentData = {
         compoundName: file.name.replace('.pdf', '').replace(/_/g, ' '),
@@ -116,7 +184,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
           quantity: "100g",
           concentrationRisk: false
         },
-        physicalCharacteristics: ["Semi-Solid"],
+        physicalCharacteristics: physicalCharacteristics,
         equipmentRequired: ["Balance"],
         safetyChecks: {
           specialEducation: {
@@ -125,7 +193,7 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
           },
           verificationRequired: true,
           equipmentAvailable: true,
-          ventilationRequired: false
+          ventilationRequired: hasPowderIngredient || physicalCharacteristics.includes("Powder")
         },
         workflowConsiderations: {
           uninterruptedWorkflow: {
@@ -145,11 +213,30 @@ const mockProcessDocument = async (file: File, extractedText?: string): Promise<
         },
         safetyEquipment: {
           eyeWashStation: true,
-          safetyShower: false
+          safetyShower: false,
+          powderContainmentHood: hasPowderIngredient || physicalCharacteristics.includes("Powder"),
+          localExhaustVentilation: hasPowderIngredient || physicalCharacteristics.includes("Powder")
         },
-        riskLevel: "Level A",
+        riskLevel: "Level A", // This will be recalculated correctly by the assessment component
         rationale: "This compound consists of simple preparations with minimal risk factors. According to NAPRA guidelines, Level A precautions with standard operating procedures are sufficient for safe compounding."
       };
+      
+      // If we detect Ketamine or other narcotics, add inhalation to exposure risks
+      const narcoticKeywords = ["ketamine", "codeine", "morphine", "fentanyl", "hydrocodone", "oxycodone", "hydromorphone", "methadone", "buprenorphine", "tramadol"];
+      
+      const hasNarcoticIngredient = detectedIngredients.some(ing => 
+        narcoticKeywords.some(keyword => ing.name.toLowerCase().includes(keyword))
+      );
+      
+      if (hasNarcoticIngredient && !assessmentData.exposureRisks.includes("Inhalation")) {
+        assessmentData.exposureRisks.push("Inhalation");
+      }
+      
+      // If we have powders, add inhalation risk
+      if ((hasPowderIngredient || physicalCharacteristics.includes("Powder")) && 
+          !assessmentData.exposureRisks.includes("Inhalation")) {
+        assessmentData.exposureRisks.push("Inhalation");
+      }
       
       resolve({
         assessmentData,

@@ -1,27 +1,43 @@
 
-import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
+import React from "react";
 import { Input } from "@/components/ui/input";
-import { ShieldAlert, ShieldCheck, Plus, AlertCircle, Info, FileText } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Shield, ShieldCheck, ShieldAlert, Plus, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import SDSInfoSection from "./SDSInfoSection";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { toast } from "sonner";
 
 interface ActiveIngredient {
   name: string;
   manufacturer: string;
   nioshStatus: {
     isOnNioshList: boolean;
+    hazardLevel: string;
+    hazardType: string[];
     table?: string;
-    hazardLevel?: "High Hazard" | "Moderate Hazard" | "Non-Hazardous";
-    hazardType?: string[];
   };
   reproductiveToxicity: boolean;
   whmisHazards: boolean;
   sdsDescription: string;
   monographWarnings: string;
-  sdsData?: any; // To avoid typescript errors
+  sdsData?: {
+    ingredientName: string;
+    physicalForm?: string;
+    hazardClassification: {
+      ghs: string[];
+      whmis: string[];
+    };
+    recommendedPPE: {
+      gloves: string;
+      respiratoryProtection: string;
+      eyeProtection: string;
+      bodyProtection: string;
+    };
+    exposureRisks: string[];
+    handlingPrecautions: string[];
+    timestamp: number;
+  };
 }
 
 interface ActiveIngredientsSectionProps {
@@ -35,219 +51,205 @@ const ActiveIngredientsSection: React.FC<ActiveIngredientsSectionProps> = ({
   isEditing,
   onActiveIngredientChange
 }) => {
-  // State to track which SDS is loading
-  const [loadingSds, setLoadingSds] = useState<{[key: string]: boolean}>({});
-  
-  const handleViewSds = (ingredientName: string) => {
-    // Mark this ingredient as loading
-    setLoadingSds(prev => ({...prev, [ingredientName]: true}));
-    
-    // Here we would typically fetch SDS data
-    // For now, simulate a loading state
-    setTimeout(() => {
-      setLoadingSds(prev => ({...prev, [ingredientName]: false}));
-      // You could update the SDS data here in a real implementation
-    }, 1500);
-    
-    toast.info(`Opening SDS for ${ingredientName}`);
-  };
-  
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {activeIngredients.map((ingredient, index) => (
-        <div key={index} className="border rounded-md p-4 bg-white">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-3">
-            <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-2">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-pharmacy-gray mb-1">Ingredient Name</label>
-                  {isEditing ? (
-                    <Input
-                      value={ingredient.name}
-                      onChange={(e) => onActiveIngredientChange(index, "name", e.target.value)}
-                      className="w-full"
-                    />
-                  ) : (
-                    <div className="flex items-center">
-                      <span className="text-pharmacy-darkBlue font-medium">{ingredient.name}</span>
-                      {ingredient.nioshStatus.isOnNioshList && (
-                        <Badge className="ml-2 bg-red-100 text-red-800">NIOSH List</Badge>
-                      )}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-pharmacy-gray mb-1">Manufacturer</label>
-                  {isEditing ? (
-                    <Input
-                      value={ingredient.manufacturer || ""}
-                      onChange={(e) => onActiveIngredientChange(index, "manufacturer", e.target.value)}
-                      className="w-full"
-                      placeholder="Enter manufacturer (optional)"
-                    />
-                  ) : (
-                    <span className="text-pharmacy-gray">
-                      {ingredient.manufacturer || "Not specified"}
-                    </span>
-                  )}
-                </div>
+        <div key={index} className="p-4 border rounded-md bg-white">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-sm font-medium text-pharmacy-gray mb-1">Ingredient Name</label>
+              <Input
+                value={ingredient.name}
+                onChange={(e) => onActiveIngredientChange(index, "name", e.target.value)}
+                disabled={!isEditing}
+                placeholder="Ingredient name"
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-pharmacy-gray mb-1">
+                Manufacturer
+              </label>
+              <Input
+                value={ingredient.manufacturer}
+                onChange={(e) => onActiveIngredientChange(index, "manufacturer", e.target.value)}
+                disabled={!isEditing}
+                placeholder="Manufacturer (optional)"
+                className="w-full"
+              />
+            </div>
+          </div>
+          
+          {isEditing && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-sm font-medium text-pharmacy-gray mb-1">NIOSH Status</label>
+                <Select
+                  value={ingredient.nioshStatus.table || "none"}
+                  onValueChange={(value) => {
+                    onActiveIngredientChange(index, "nioshStatus.table", value === "none" ? null : value);
+                    // Update hazard level based on table selection
+                    let hazardLevel = "Non-Hazardous";
+                    if (value === "Table 1") hazardLevel = "High Hazard";
+                    if (value === "Table 2") hazardLevel = "Moderate Hazard";
+                    onActiveIngredientChange(index, "nioshStatus.hazardLevel", hazardLevel);
+                  }}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select NIOSH status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not on NIOSH list</SelectItem>
+                    <SelectItem value="Table 1">Table 1 (High Hazard)</SelectItem>
+                    <SelectItem value="Table 2">Table 2 (Moderate Hazard)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-pharmacy-gray mb-1">WHMIS Hazards</label>
+                <Select
+                  value={ingredient.whmisHazards ? "yes" : "no"}
+                  onValueChange={(value) => onActiveIngredientChange(index, "whmisHazards", value === "yes")}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="WHMIS hazards?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-pharmacy-gray mb-1">Reproductive Toxicity</label>
+                <Select
+                  value={ingredient.reproductiveToxicity ? "yes" : "no"}
+                  onValueChange={(value) => onActiveIngredientChange(index, "reproductiveToxicity", value === "yes")}
+                  disabled={!isEditing}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Reproductive toxicity?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            
-            <div className="mt-2 md:mt-0">
-              {ingredient.nioshStatus.hazardLevel && (
-                <Badge className={`
-                  ${ingredient.nioshStatus.hazardLevel === "High Hazard" ? "bg-red-100 text-red-800" : 
-                    ingredient.nioshStatus.hazardLevel === "Moderate Hazard" ? "bg-yellow-100 text-yellow-800" : 
-                    "bg-green-100 text-green-800"}
-                `}>
-                  {ingredient.nioshStatus.hazardLevel === "High Hazard" ? (
-                    <ShieldAlert className="w-3 h-3 mr-1" />
-                  ) : ingredient.nioshStatus.hazardLevel === "Moderate Hazard" ? (
-                    <AlertCircle className="w-3 h-3 mr-1" />
-                  ) : (
-                    <ShieldCheck className="w-3 h-3 mr-1" />
-                  )}
-                  {ingredient.nioshStatus.hazardLevel}
+          )}
+          
+          {!isEditing && (
+            <div className="flex flex-wrap gap-2 mb-3">
+              {ingredient.nioshStatus.table ? (
+                <Badge className={ingredient.nioshStatus.table === "Table 1" ? "bg-red-100 text-red-800" : "bg-orange-100 text-orange-800"}>
+                  <Shield className="w-3 h-3 mr-1" />
+                  NIOSH {ingredient.nioshStatus.table}
+                </Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-800">
+                  <ShieldCheck className="w-3 h-3 mr-1" />
+                  Not on NIOSH list
+                </Badge>
+              )}
+              
+              {ingredient.whmisHazards && (
+                <Badge className="bg-yellow-100 text-yellow-800">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  WHMIS Hazards
+                </Badge>
+              )}
+              
+              {ingredient.reproductiveToxicity && (
+                <Badge className="bg-purple-100 text-purple-800">
+                  <AlertTriangle className="w-3 h-3 mr-1" />
+                  Reproductive Toxicity
+                </Badge>
+              )}
+              
+              {ingredient.manufacturer && (
+                <Badge className="bg-blue-100 text-blue-800">
+                  {ingredient.manufacturer}
                 </Badge>
               )}
             </div>
-          </div>
+          )}
           
-          {(ingredient.nioshStatus.isOnNioshList || ingredient.nioshStatus.table) && (
-            <div className="mb-3 flex items-start p-3 bg-yellow-50 border border-yellow-100 rounded">
-              <Info className="text-yellow-700 w-4 h-4 mr-2 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="text-sm text-yellow-800 font-medium">
-                  NIOSH Classification: {ingredient.nioshStatus.table || "Not on NIOSH list"}
-                </p>
-                {ingredient.nioshStatus.hazardType && ingredient.nioshStatus.hazardType.length > 0 && (
-                  <p className="text-xs text-yellow-700 mt-1">
-                    Hazard type: {ingredient.nioshStatus.hazardType.join(", ")}
-                  </p>
-                )}
-              </div>
+          {isEditing && (
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-pharmacy-gray mb-1">SDS Description</label>
+              <Textarea
+                value={ingredient.sdsDescription}
+                onChange={(e) => onActiveIngredientChange(index, "sdsDescription", e.target.value)}
+                disabled={!isEditing}
+                placeholder="SDS description"
+                className="w-full"
+              />
             </div>
           )}
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-            <div>
-              <div className="flex items-center mb-1">
-                <label className="text-sm font-medium text-pharmacy-gray">Reproductive Toxicity</label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="ml-2 cursor-help">
-                        <Info className="h-4 w-4 text-blue-500" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs max-w-xs">Indicates if this ingredient has known reproductive toxicity effects requiring special precautions</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="flex items-center">
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={ingredient.reproductiveToxicity}
-                    onChange={(e) => onActiveIngredientChange(index, "reproductiveToxicity", e.target.checked)}
-                    className="mr-2"
-                  />
-                ) : (
-                  <Badge className={`${ingredient.reproductiveToxicity ? "bg-red-100 text-red-800" : "bg-gray-100 text-gray-800"}`}>
-                    {ingredient.reproductiveToxicity ? "Yes" : "No"}
-                  </Badge>
-                )}
-              </div>
-            </div>
-            
-            <div>
-              <div className="flex items-center mb-1">
-                <label className="text-sm font-medium text-pharmacy-gray">WHMIS Hazards</label>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className="ml-2 cursor-help">
-                        <Info className="h-4 w-4 text-blue-500" />
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-xs max-w-xs">Indicates if this ingredient has WHMIS hazard classifications</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </div>
-              <div className="flex items-center">
-                {isEditing ? (
-                  <input
-                    type="checkbox"
-                    checked={ingredient.whmisHazards}
-                    onChange={(e) => onActiveIngredientChange(index, "whmisHazards", e.target.checked)}
-                    className="mr-2"
-                  />
-                ) : (
-                  <Badge className={`${ingredient.whmisHazards ? "bg-yellow-100 text-yellow-800" : "bg-gray-100 text-gray-800"}`}>
-                    {ingredient.whmisHazards ? "Yes" : "No"}
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-pharmacy-gray mb-1">Safety Data Sheet Information</label>
-            {ingredient.sdsDescription && (
-              <p className="text-sm text-pharmacy-gray mb-2">{ingredient.sdsDescription}</p>
-            )}
-            
-            <SDSInfoSection
-              ingredientName={ingredient.name}
-              sdsData={ingredient.sdsData}
-              isLoading={loadingSds[ingredient.name] || false}
-              onViewSds={() => handleViewSds(ingredient.name)}
-            />
-          </div>
-          
-          {ingredient.monographWarnings && (
-            <div className="mt-4">
+          {isEditing && (
+            <div className="mb-4">
               <label className="block text-sm font-medium text-pharmacy-gray mb-1">Monograph Warnings</label>
-              <div className="p-3 bg-blue-50 border border-blue-100 rounded-md">
-                <div className="flex items-start">
-                  <FileText className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-                  <p className="text-sm text-blue-700">{ingredient.monographWarnings}</p>
-                </div>
-              </div>
+              <Textarea
+                value={ingredient.monographWarnings}
+                onChange={(e) => onActiveIngredientChange(index, "monographWarnings", e.target.value)}
+                disabled={!isEditing}
+                placeholder="Monograph warnings"
+                className="w-full"
+              />
             </div>
           )}
+          
+          <SDSInfoSection
+            ingredientName={ingredient.name}
+            sdsData={ingredient.sdsData || null}
+            isLoading={false}
+          />
         </div>
       ))}
       
       {isEditing && (
-        <Button 
-          variant="outline" 
-          size="sm"
-          className="mt-2 w-full border-dashed"
-          onClick={() => {
-            onActiveIngredientChange(activeIngredients.length, "new", {
+        <div className="flex space-x-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onActiveIngredientChange(activeIngredients.length, "add", {
               name: "",
               manufacturer: "",
               nioshStatus: {
                 isOnNioshList: false,
-                hazardLevel: "Non-Hazardous"
+                hazardLevel: "Non-Hazardous",
+                hazardType: []
               },
               reproductiveToxicity: false,
               whmisHazards: false,
               sdsDescription: "",
               monographWarnings: ""
-            });
-          }}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Ingredient
-        </Button>
+            })}
+            className="flex items-center"
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Ingredient
+          </Button>
+          
+          {activeIngredients.length > 1 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onActiveIngredientChange(activeIngredients.length - 1, "remove", null)}
+              className="flex items-center text-red-600 hover:text-red-700"
+            >
+              <Minus className="w-4 h-4 mr-1" />
+              Remove Last
+            </Button>
+          )}
+        </div>
       )}
     </div>
   );
