@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -6,6 +5,7 @@ import { toast } from "sonner";
 import NAPRARiskAssessmentForm from '@/components/NAPRARiskAssessmentForm';
 import NAPRAAssessmentReport from '@/components/NAPRAAssessmentReport';
 import { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
+import { scrubMedisca } from '@/utils/sanitise';
 
 interface NAPRARiskAssessment {
   preparationName: string;
@@ -110,7 +110,8 @@ const NAPRARiskAssessmentPage = () => {
   };
   
   const handleAssessmentComplete = (completed: NAPRARiskAssessment) => {
-    setAssessment(completed);
+    const sanitizedAssessment = scrubMedisca(completed);
+    setAssessment(sanitizedAssessment);
     toast.success("NAPRA risk assessment completed");
   };
   
