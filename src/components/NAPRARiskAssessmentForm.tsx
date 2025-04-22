@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Card,
@@ -26,13 +27,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Check, Info } from "lucide-react";
+import { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
 
 interface NAPRARiskAssessmentFormProps {
+  initialData?: KeswickAssessmentData;
   onComplete: (data: any) => void;
   onCancel: () => void;
 }
 
 const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
+  initialData,
   onComplete,
   onCancel,
 }) => {
@@ -47,6 +51,32 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
       otherControls: [],
     },
   });
+
+  // Use the initialData to set up the form if provided
+  useEffect(() => {
+    if (initialData) {
+      setAssessment(prevState => ({
+        ...prevState,
+        compoundName: initialData.compoundName || "",
+        din: initialData.din || "",
+        compoundingType: initialData.physicalCharacteristics?.includes("Semi-Solid") ? "Non-Sterile" : "",
+        // Map Keswick risk levels to NAPRA risk levels (A, B, C)
+        assignedRiskLevel: initialData.riskLevel?.includes("Level") ? initialData.riskLevel : "",
+        recommendedControls: {
+          ...prevState.recommendedControls,
+          ppe: initialData.ppe ? 
+            [
+              initialData.ppe.gloves && "Gloves",
+              initialData.ppe.gown && "Gown",
+              initialData.ppe.mask && "Mask",
+              initialData.ppe.eyeProtection && "Eye Protection"
+            ].filter(Boolean) : [],
+          engineeringControls: [],
+          otherControls: [],
+        }
+      }));
+    }
+  }, [initialData]);
 
   const compoundingTypeOptions = ["Sterile", "Non-Sterile"];
   const riskLevelOptions = ["Level A", "Level B", "Level C"];
@@ -137,6 +167,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                 <div className="grid grid-cols-1">
                   <Label>Select Compounding Type</Label>
                   <Select
+                    value={assessment.compoundingType}
                     onValueChange={(value) =>
                       handleChange("compoundingType", "compoundingType", value)
                     }
@@ -161,6 +192,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                 <div className="grid grid-cols-1">
                   <Label>Assign Risk Level</Label>
                   <Select
+                    value={assessment.assignedRiskLevel}
                     onValueChange={(value) =>
                       handleChange("riskLevel", "assignedRiskLevel", value)
                     }
