@@ -1,12 +1,18 @@
-
 import React, { useState, useRef } from "react";
 import { Upload } from "lucide-react";
 import { toast } from "sonner";
 import * as pdfjsLib from "pdfjs-dist";
+import Fuse from "fuse.js";
 import { clearSdsCache } from "@/utils/mediscaAPI";
 
 // Set the worker source path
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+const fuzzyMatch = (needle: string, haystack: string[]) => {
+  const fuse = new Fuse(haystack, { includeScore: true, threshold: 0.15 });
+  const res = fuse.search(needle);
+  return res.length ? res[0].item : null;
+};
 
 interface FileUploaderProps {
   onFileUploaded: (file: File, extractedText?: string) => void;
@@ -69,91 +75,66 @@ const FileUploader: React.FC<FileUploaderProps> = ({ onFileUploaded }) => {
     }
   };
 
-  const extractTextFromPdf = async (file: File): Promise<string> => {
-    try {
-      // Read the file as array buffer
-      const arrayBuffer = await file.arrayBuffer();
-      
-      // Load the PDF document
-      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-      console.log(`PDF loaded: ${pdf.numPages} pages`);
-      
-      // Extract text from each page
-      let fullText = "";
-      for (let i = 1; i <= pdf.numPages; i++) {
-        console.log(`Processing page ${i}/${pdf.numPages}...`);
-        const page = await pdf.getPage(i);
-        const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
-        fullText += pageText + "\n\n";
-      }
-      
-      console.log(`Extracted ${fullText.length} characters of text`);
-      
-      // Enhanced patterns for ingredient detection - expanded to better match various PDF formats
-      const ingredientSectionPatterns = [
-        /ingredient[s:]|active ingredient[s:]/i,
-        /drug[s:]\s*substance/i,
-        /formulation:/i,
-        /composition:/i,
-        /formula[tion]*:/i,
-        /components?:/i,
-        /active\s+substance/i,         // Added for European formulations
-        /medicinal\s+ingredient/i,     // Added for clinical formulations
-        /api\s+content/i,              // Active Pharmaceutical Ingredient
-        /contains:/i                   // Common in simple formulations
-      ];
-      
-      // Log each pattern match separately for better debugging
-      for (const pattern of ingredientSectionPatterns) {
-        const match = fullText.match(pattern);
-        if (match) {
-          console.log(`Found potential ingredient section with pattern "${pattern}" at position ${match.index}`);
-        }
-      }
-      
-      // Enhanced detection for specific common compounding ingredients with expanded list
-      const commonIngredients = [
-        "Omeprazole", "Ketoprofen", "Gabapentin", "Baclofen", "Ketamine", 
-        "Lidocaine", "Estradiol", "Clonidine", "Diclofenac", "Amitriptyline",
-        // Added more common compounding ingredients for better detection
-        "Metformin", "Progesterone", "Testosterone", "Hydrocortisone", "Fluconazole",
-        "Metronidazole", "Tretinoin", "Minoxidil", "Naltrexone", "Tacrolimus",
-        "Amlodipine", "Carvedilol", "Dexamethasone", "Lisinopril", "Ranitidine",
-        "Doxycycline", "Ibuprofen", "Melatonin", "Papaverine", "Sildenafil"
-      ];
-      
-      // Log if we find any known ingredients in the text - including partial matches for derivatives
-      const foundIngredients = [];
-      for (const ingredient of commonIngredients) {
-        // Use a more flexible regex to catch hyphenated variations and derivatives
-        const ingredientRegex = new RegExp(`${ingredient}(?:\\b|\\s|-|\\d)`, 'i');
-        if (ingredientRegex.test(fullText)) {
-          console.log(`Detected ${ingredient} in document`);
-          foundIngredients.push(ingredient);
-        }
-      }
-      
-      if (foundIngredients.length > 0) {
-        console.log(`Found these ingredients: ${foundIngredients.join(', ')}`);
-      } else {
-        console.log("No known ingredients detected - this may be a custom formula");
-      }
-      
-      // Check for physical form descriptors
-      const physicalForms = ["cream", "gel", "ointment", "solution", "suspension", "tablet", "capsule", "powder", "liquid", "lotion"];
-      for (const form of physicalForms) {
-        if (fullText.toLowerCase().includes(form.toLowerCase())) {
-          console.log(`Detected physical form: ${form}`);
-        }
-      }
-      
-      return fullText;
-    } catch (error) {
-      console.error("Error extracting text from PDF:", error);
-      throw new Error("Failed to extract text from PDF");
+const extractTextFromPdf = async (file: File): Promise<string> => {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log(`PDF loaded: ${pdf.numPages} pages`);
+
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      console.log(`Processing page ${i}/${pdf.numPages}...`);
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      fullText += textContent.items.map((it: any) => it.str).join(" ") + "\n";
     }
-  };
+
+    // Remove Medisca references
+    fullText = fullText.replace(/medisca/gi, "");
+
+    // Define common ingredients
+    const commonIngredients = [
+      "Estriol", "Estradiol", "Lansoprazole", "Ketamine", "Gabapentin",
+      "Baclofen", "Clonidine", "Omeprazole", "Ketoprofen", "Amitriptyline",
+      "Metformin", "Progesterone", "Testosterone", "Hydrocortisone", "Fluconazole",
+      "Metronidazole", "Tretinoin", "Minoxidil", "Naltrexone", "Tacrolimus",
+      "Amlodipine", "Carvedilol", "Dexamethasone", "Lisinopril", "Ranitidine",
+      "Doxycycline", "Ibuprofen", "Melatonin", "Papaverine", "Sildenafil"
+    ];
+
+    // Exact matching first
+    const found = commonIngredients
+      .map(n => ({ n, hit: new RegExp(`\\b${n}\\b`, "i").test(fullText) }))
+      .filter(x => x.hit)
+      .map(x => x.n);
+
+    // Fallback to fuzzy search if no exact matches
+    if (!found.length) {
+      const words = Array.from(new Set(fullText.match(/[A-Za-z]{5,}/g) || []));
+      const maybe = words.map(w => fuzzyMatch(w, commonIngredients)).filter(Boolean);
+      found.push(...new Set(maybe));
+    }
+
+    if (!found.length) {
+      console.warn("No ingredient recognised in PDF");
+    } else {
+      console.log("Found ingredients:", found);
+    }
+
+    // Check for physical form descriptors
+    const physicalForms = ["cream", "gel", "ointment", "solution", "suspension", "tablet", "capsule", "powder", "liquid", "lotion"];
+    for (const form of physicalForms) {
+      if (fullText.toLowerCase().includes(form.toLowerCase())) {
+        console.log(`Detected physical form: ${form}`);
+      }
+    }
+
+    return fullText;
+  } catch (error) {
+    console.error("Error extracting text from PDF:", error);
+    throw new Error("Failed to extract text from PDF");
+  }
+};
 
   const handleButtonClick = () => {
     if (fileInputRef.current) {
