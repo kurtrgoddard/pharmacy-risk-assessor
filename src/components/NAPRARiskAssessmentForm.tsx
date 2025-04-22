@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -282,6 +281,14 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
         crossContaminationRisk: initialData.workflowConsiderations?.crossContaminationRisk || false,
         microbialContaminationRisk: initialData.workflowConsiderations?.microbialContaminationRisk || false,
         
+        safetyEquipment: {
+          eyeWashStation: initialData.safetyEquipment?.eyeWashStation || false,
+          safetyShower: initialData.safetyEquipment?.safetyShower || false,
+          powderContainmentHood: initialData.physicalCharacteristics.includes("Powder") && 
+            (initialData.riskLevel === "Level B" || initialData.riskLevel === "Level C"),
+          localExhaustVentilation: initialData.safetyEquipment?.localExhaustVentilation || false
+        },
+
         // Set initial recommendations based on existing data
         recommendedControls: {
           engineeringControls: [],
@@ -953,64 +960,4 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                               <Checkbox 
                                 id={`ppe-${ppe}`}
                                 checked={assessment.recommendedControls.ppe.includes(ppe)}
-                                onCheckedChange={(checked) => handleCheckboxListChange(
-                                  "recommendedControls", "ppe", ppe, !!checked
-                                )}
-                              />
-                              <Label htmlFor={`ppe-${ppe}`}>{ppe}</Label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <Label htmlFor="other-controls">Other Control Measures</Label>
-                        <Textarea 
-                          id="other-controls"
-                          placeholder="Enter any additional control measures"
-                          value={assessment.recommendedControls.otherControls.join("\n")}
-                          onChange={(e) => handleChange(
-                            "recommendedControls", 
-                            "otherControls", 
-                            e.target.value.split("\n").filter(line => line.trim() !== "")
-                          )}
-                          className="mt-2"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-          
-          {/* NAPRA guidelines information */}
-          <div className="bg-blue-50 p-4 rounded-lg mt-4">
-            <div className="flex items-start">
-              <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">NAPRA Guidelines</h4>
-                <p className="text-xs text-blue-800 mt-1">
-                  <strong>Level A:</strong> Simple compounding with low risk, prepared in a non-segregated compounding area.<br />
-                  <strong>Level B:</strong> Complex compounding or moderate hazard, requires segregated compounding area.<br />
-                  <strong>Level C:</strong> Complex compounding with high hazard, requires dedicated room with appropriate C-PEC.
-                </p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" type="button" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!assessment.assignedRiskLevel}>
-            <Check className="mr-2 h-4 w-4" />
-            Complete Assessment
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
-  );
-};
-
-export default NAPRARiskAssessmentForm;
+                                onChecked
