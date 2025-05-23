@@ -1,4 +1,3 @@
-
 export interface CompoundFormulation {
   name: string;
   dosageForm: string;
@@ -109,4 +108,31 @@ export interface SDSSearchResult {
   manufacturer: string;
   sdsUrl: string;
   lastUpdated: string;
+}
+
+export interface SystemHealth {
+  apis: Record<string, APIHealth>;
+  cache: {
+    hitRate: number;
+    size: number;
+    itemCount: number;
+    oldestItem: Date;
+  };
+  overall: 'healthy' | 'degraded' | 'unhealthy';
+}
+
+export interface APIHealth {
+  name: string;
+  status: 'operational' | 'degraded' | 'down';
+  lastCheck: Date;
+  successRate: number;
+  averageLatency: number;
+}
+
+export interface OperationMetrics {
+  operationName: string;
+  successRate: number;
+  averageLatency: number;
+  lastError?: Date;
+  totalCalls: number;
 }
