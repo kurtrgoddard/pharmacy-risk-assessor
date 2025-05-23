@@ -11,7 +11,7 @@ import {
 interface CompoundInfoSectionProps {
   compoundName: string;
   din: string;
-  onValueChange: (field: string, value: string) => void;
+  onValueChange: (section: string, field: string, value: string | string[]) => void;
 }
 
 const CompoundInfoSection: React.FC<CompoundInfoSectionProps> = ({
@@ -32,7 +32,7 @@ const CompoundInfoSection: React.FC<CompoundInfoSectionProps> = ({
               placeholder="Enter compound name"
               value={compoundName}
               onChange={(e) =>
-                onValueChange("compoundName", e.target.value)
+                onValueChange("compoundInfo", "compoundName", e.target.value)
               }
             />
           </div>
@@ -43,7 +43,7 @@ const CompoundInfoSection: React.FC<CompoundInfoSectionProps> = ({
               id="din"
               placeholder="Enter DIN"
               value={din}
-              onChange={(e) => onValueChange("din", e.target.value)}
+              onChange={(e) => onValueChange("compoundInfo", "din", e.target.value)}
             />
           </div>
         </div>

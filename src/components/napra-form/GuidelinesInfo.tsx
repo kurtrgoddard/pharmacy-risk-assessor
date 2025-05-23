@@ -1,10 +1,11 @@
 
 import React from "react";
 import { Info } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const GuidelinesInfo: React.FC = () => {
   return (
-    <div className="bg-blue-50 p-4 rounded-lg mt-4">
+    <Card className="bg-blue-50 p-4 mt-4 border-blue-100">
       <div className="flex items-start">
         <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
         <div>
@@ -16,7 +17,7 @@ const GuidelinesInfo: React.FC = () => {
           </p>
         </div>
       </div>
-    </div>
+    </Card>
   );
 };
 

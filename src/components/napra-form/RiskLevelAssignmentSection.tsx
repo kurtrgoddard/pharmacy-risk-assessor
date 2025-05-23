@@ -17,7 +17,7 @@ import {
 interface RiskLevelAssignmentSectionProps {
   assignedRiskLevel: string;
   riskLevelOptions: string[];
-  onValueChange: (field: string, value: string) => void;
+  onValueChange: (section: string, field: string, value: string | string[]) => void;
 }
 
 const RiskLevelAssignmentSection: React.FC<RiskLevelAssignmentSectionProps> = ({
@@ -34,7 +34,7 @@ const RiskLevelAssignmentSection: React.FC<RiskLevelAssignmentSectionProps> = ({
           <Select
             value={assignedRiskLevel}
             onValueChange={(value) =>
-              onValueChange("assignedRiskLevel", value)
+              onValueChange("riskLevel", "assignedRiskLevel", value)
             }
           >
             <SelectTrigger className="w-full">

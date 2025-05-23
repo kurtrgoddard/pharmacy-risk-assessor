@@ -17,7 +17,7 @@ import {
 interface CompoundingTypeSectionProps {
   compoundingType: string;
   compoundingTypeOptions: string[];
-  onValueChange: (field: string, value: string) => void;
+  onValueChange: (section: string, field: string, value: string | string[]) => void;
 }
 
 const CompoundingTypeSection: React.FC<CompoundingTypeSectionProps> = ({
@@ -34,7 +34,7 @@ const CompoundingTypeSection: React.FC<CompoundingTypeSectionProps> = ({
           <Select
             value={compoundingType}
             onValueChange={(value) =>
-              onValueChange("compoundingType", value)
+              onValueChange("compoundingType", "compoundingType", value)
             }
           >
             <SelectTrigger className="w-full">
