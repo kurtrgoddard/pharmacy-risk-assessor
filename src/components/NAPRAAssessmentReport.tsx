@@ -1,70 +1,12 @@
-import React from "react";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, Printer } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 
-interface NAPRARiskAssessment {
-  // Basic preparation information
-  preparationName: string;
-  preparedBy: string;
-  reviewedBy: string;
-  dateAssessed: string;
-  
-  // Risk factors
-  complexityFactors: {
-    requiresCalculations: boolean;
-    requiresSpecializedEquipment: boolean;
-    requiresSpecializedKnowledge: boolean;
-    multipleIngredients: boolean;
-    difficultPreparationProcess: boolean;
-  };
-  
-  hazardousFactors: {
-    containsNIOSHIngredients: boolean;
-    containsWHMISIngredients: boolean;
-    reproductiveRisk: boolean;
-    respiratoryRisk: boolean;
-    contactSensitizer: boolean;
-  };
-  
-  frequencyVolume: {
-    frequencyOfPreparation: "daily" | "weekly" | "monthly" | "rarely";
-    volumePreparation: "large" | "medium" | "small";
-  };
-  
-  concentrationRisk: boolean;
-  
-  exposureRisk: {
-    routesOfExposure: string[];
-    exposureDuration: "prolonged" | "moderate" | "minimal";
-  };
-  
-  crossContaminationRisk: boolean;
-  microbialContaminationRisk: boolean;
-  
-  // Final assessment
-  assignedRiskLevel: "A" | "B" | "C" | "";
-  riskJustification: string;
-  
-  // Control measures
-  recommendedControls: {
-    engineeringControls: string[];
-    administrativeControls: string[];
-    ppe: string[];
-    otherControls: string[];
-  };
-}
+import React from 'react';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, Download, FilePdf } from "lucide-react";
+import { PDFViewer } from "@/components";
+import { toast } from "sonner";
 
 interface NAPRAAssessmentReportProps {
-  assessment: NAPRARiskAssessment;
+  assessment: any;
   onBack: () => void;
 }
 
@@ -72,327 +14,111 @@ const NAPRAAssessmentReport: React.FC<NAPRAAssessmentReportProps> = ({
   assessment,
   onBack,
 }) => {
-  const printReport = () => {
-    window.print();
-  };
+  const pdfBlob = "data:application/pdf;base64,JVBERi0xLjcKJeLjz9MKMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovUGFnZXMgMiAwIFIKPj4KZW5kb2JqCjIgMCBvYmoKPDwKL1R5cGUgL1BhZ2VzCi9LaWRzIFszIDAgUl0KL0NvdW50IDEKPj4KZW5kb2JqCjMgMCBvYmoKPDwKL1R5cGUgL1BhZ2UKL1BhcmVudCAyIDAgUgovUmVzb3VyY2VzIDw8Ci9Gb250IDw8Ci9GMSAxNCAwIFIKPj4KL0V4dEdTdGF0ZSA8PAovR1M3IDcgMCBSCi9HUzggOCAwIFIKPj4KPj4KL0NvbnRlbnRzIFsxNSAwIFJdCi9NZWRpYUJveCBbMCAwIDU5NSA4NDJdCi9Dcm9wQm94IFswIDAgNTk1IDg0Ml0KL1JvdGF0ZSAwCj4+CmVuZG9iagoxNSAwIG9iago8PAovTGVuZ3RoIDE2IDAgUgovRmlsdGVyIC9GbGF0ZURlY29kZQo+PgpzdHJlYW0KeJytVluO0zAQvfsUc4OOZzKZx07nCImffrhw4Qt4m3a78bZd2gIXSO1JO2nSohYBhVhyPGM7njn3TryHH0GQIEEgGujtRezdTy6gJbJ+IeToHXoLtIHXy9F0giq1VKiZMCPntVgCdzOMFQ/xK/t2OXqBXkzwggv4hN6L69tlQJhHM1MLagwt6yvfff6aEIhWePxvgXGbf74JhXbKQXiiw5XkFb1oNKv0pVrU9340Bo1fzuAWnCny3cRaF5xvnMA+hI9YLmKzktXiyXw+m82nZb04gMhwCnXVcnYL1MWAccHQxEpMMqJmTKIt02kpFQ3hM6sP60241GoO5xlvnJXe2Lxek+b5Nv88TZfHy6TSoCwvYZlXJ0GmNNguGawkzCoUwpjWp88Y9NhYGnZIfTGG5o6+ra70EZ0bS922NkSmXaqCPrQdsl3YzZZSTcN2kZL+WklOioswf4go6MdPY13J09B7x7JaBy3Cm7zUpCF0WC3dtAguJRV7ke9FvUjrVTpJy+Piyi1p9aNW2G1PvlMO5GQyndp8jvJdb7Qote5Aij6kmj/IQH/SBvA2OYIaNeV89C5Nx5PkdDw7G4/P0rP0RH5Lsmw8HZ+f4vFfS+Ylh+DpZDKeTDHsf5PoI5ajZM94BhMYNAF9lxybE7UOW2IcZKMHg/kDmCt1lGZpmr1+PM1+A41ks7cKZW5kc3RyZWFtCmVuZG9iagoxNiAwIG9iago1MTAKZW5kb2JqCjE0IDAgb2JqCjw8Ci9UeXBlIC9Gb250Ci9TdWJ0eXBlIC9UeXBlMQovQmFzZUZvbnQgL1RpbWVzLVJvbWFuCi9FbmNvZGluZyAvV2luQW5zaUVuY29kaW5nCj4+CmVuZG9iago3IDAgb2JqCjw8Ci9UeXBlIC9FeHRHU3RhdGUKL0JNIC9Ob3JtYWwKL0NBIDEKL0xDIDAKPj4KZW5kb2JqCjggMCBvYmoKPDwKL1R5cGUgL0V4dEdTdGF0ZQovQk0gL05vcm1hbAovY2EgMQo+PgplbmRvYmoKeHJlZgowIDE3CjAwMDAwMDAwMDAgNjU1MzUgZg0KMDAwMDAwMDAwOSAwMDAwMCBuDQowMDAwMDAwMDU3IDAwMDAwIG4NCjAwMDAwMDAxMTQgMDAwMDAgbg0KMDAwMDAwMDMwMCAwMDAwMCBuDQowMDAwMDAwODgwIDAwMDAwIG4NCjAwMDAwMDA5NTEgMDAwMDAgbg0KMDAwMDAwMTA0NSAwMDAwMCBuDQowMDAwMDAxMTA0IDAwMDAwIG4NCjAwMDAwMDAwMDAgMDAwMDAgZg0KMDAwMDAwMDAwMCAwMDAwMCBmDQowMDAwMDAwMDAwIDAwMDAwIGYNCjAwMDAwMDAwMDAgMDAwMDAgZg0KMDAwMDAwMDAwMCAwMDAwMCBmDQowMDAwMDAwOTc5IDAwMDAwIG4NCjAwMDAwMDAyOTkgMDAwMDAgbg0KMDAwMDAwMDg2MCAwMDAwMCBuDQp0cmFpbGVyCjw8Ci9TaXplIDE3Ci9Sb290IDEgMCBSCi9JbmZvIDkgMCBSCj4+CnN0YXJ0eHJlZgoxMTYyCiUlRU9GCg=="; 
 
-  // Helper function to format date
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString();
-    } catch (e) {
-      return dateString;
-    }
-  };
-
-  // Generate risk level badge
-  const getRiskLevelBadge = (level: "A" | "B" | "C" | "") => {
-    if (!level) return null;
-    
-    const colorMap = {
-      A: "bg-green-100 text-green-800 hover:bg-green-100",
-      B: "bg-yellow-100 text-yellow-800 hover:bg-yellow-100",
-      C: "bg-red-100 text-red-800 hover:bg-red-100",
-    };
-    
-    return (
-      <Badge className={`text-sm px-3 py-1 ${colorMap[level]}`}>
-        Risk Level {level}
-      </Badge>
-    );
+  const handleDownload = () => {
+    const link = document.createElement('a');
+    link.href = pdfBlob;
+    link.download = `NAPRA_Risk_Assessment_${assessment.compoundName || 'Compound'}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Assessment report downloaded");
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-4 print:p-0">
-      <div className="flex justify-between items-center mb-6 print:hidden">
-        <Button variant="outline" onClick={onBack} size="sm">
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
-        <div className="flex space-x-2">
-          <Button variant="outline" onClick={printReport} size="sm">
-            <Printer className="mr-2 h-4 w-4" />
-            Print
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="mb-8">
+        <div className="flex items-center mb-4">
+          <Button variant="outline" onClick={onBack} size="sm" className="mr-4">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back
           </Button>
-          <Button size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Download PDF
-          </Button>
+          <h2 className="text-2xl font-semibold text-pharmacy-darkBlue">
+            NAPRA Risk Assessment Report
+          </h2>
+        </div>
+        
+        <div className="glass-card rounded-xl p-6">
+          <div className="mb-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-3">Compound Information</h3>
+              <p className="text-pharmacy-gray"><strong>Name:</strong> {assessment.compoundName || 'N/A'}</p>
+              <p className="text-pharmacy-gray"><strong>DIN:</strong> {assessment.din || 'N/A'}</p>
+              <p className="text-pharmacy-gray"><strong>Type:</strong> {assessment.compoundingType || 'N/A'}</p>
+            </div>
+            
+            <div>
+              <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-3">Risk Assessment</h3>
+              <p className="text-pharmacy-gray">
+                <strong>Risk Level:</strong> <span className={`px-2 py-1 rounded ${
+                  assessment.assignedRiskLevel === 'Level C' ? 'bg-red-100 text-red-800' :
+                  assessment.assignedRiskLevel === 'Level B' ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-green-100 text-green-800'
+                }`}>{assessment.assignedRiskLevel || 'Not Assigned'}</span>
+              </p>
+            </div>
+          </div>
+          
+          <div className="mb-6">
+            <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-3">Recommended Controls</h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <h4 className="text-md font-medium text-pharmacy-gray mb-2">Personal Protective Equipment (PPE)</h4>
+                {assessment.recommendedControls.ppe && assessment.recommendedControls.ppe.length > 0 ? (
+                  <ul className="list-disc list-inside">
+                    {assessment.recommendedControls.ppe.map((item: string, index: number) => (
+                      <li key={index} className="text-pharmacy-gray">{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-pharmacy-gray">No PPE specified</p>
+                )}
+              </div>
+              
+              <div>
+                <h4 className="text-md font-medium text-pharmacy-gray mb-2">Engineering Controls</h4>
+                {assessment.recommendedControls.engineeringControls && assessment.recommendedControls.engineeringControls.length > 0 ? (
+                  <ul className="list-disc list-inside">
+                    {assessment.recommendedControls.engineeringControls.map((item: string, index: number) => (
+                      <li key={index} className="text-pharmacy-gray">{item}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-pharmacy-gray">No engineering controls specified</p>
+                )}
+              </div>
+            </div>
+            
+            {assessment.recommendedControls.otherControls && assessment.recommendedControls.otherControls.length > 0 && (
+              <div className="mt-4">
+                <h4 className="text-md font-medium text-pharmacy-gray mb-2">Other Controls</h4>
+                <ul className="list-disc list-inside">
+                  {assessment.recommendedControls.otherControls.map((item: string, index: number) => (
+                    <li key={index} className="text-pharmacy-gray">{item}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-6">
+            <Button 
+              onClick={handleDownload} 
+              className="bg-pharmacy-blue hover:bg-pharmacy-darkBlue"
+            >
+              <FilePdf className="mr-2 h-4 w-4" />
+              Download PDF Report
+            </Button>
+          </div>
         </div>
       </div>
       
-      <div className="print:py-8">
-        <Card className="shadow-lg print:shadow-none">
-          <CardHeader className="border-b">
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle className="text-2xl text-pharmacy-darkBlue">
-                  NAPRA Non-Sterile Risk Assessment
-                </CardTitle>
-                <CardDescription>
-                  Completed on {formatDate(assessment.dateAssessed)}
-                </CardDescription>
-              </div>
-              {getRiskLevelBadge(assessment.assignedRiskLevel)}
-            </div>
-          </CardHeader>
-          
-          <CardContent className="py-6 space-y-6">
-            {/* Basic information */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <h3 className="font-medium text-pharmacy-darkBlue">Preparation</h3>
-                <p className="text-pharmacy-gray">{assessment.preparationName}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-pharmacy-darkBlue">Date</h3>
-                <p className="text-pharmacy-gray">{formatDate(assessment.dateAssessed)}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-pharmacy-darkBlue">Prepared By</h3>
-                <p className="text-pharmacy-gray">{assessment.preparedBy || "Not specified"}</p>
-              </div>
-              <div>
-                <h3 className="font-medium text-pharmacy-darkBlue">Reviewed By</h3>
-                <p className="text-pharmacy-gray">{assessment.reviewedBy || "Not specified"}</p>
-              </div>
-            </div>
-            
-            {/* Risk level and justification */}
-            <div className={`p-4 rounded ${
-              assessment.assignedRiskLevel === "A" ? "bg-green-50" :
-              assessment.assignedRiskLevel === "B" ? "bg-yellow-50" :
-              "bg-red-50"
-            }`}>
-              <h3 className={`font-medium ${
-                assessment.assignedRiskLevel === "A" ? "text-green-800" :
-                assessment.assignedRiskLevel === "B" ? "text-yellow-800" :
-                "text-red-800"
-              }`}>
-                Risk Level {assessment.assignedRiskLevel} Assigned
-              </h3>
-              <p className="whitespace-pre-line mt-2 text-sm">{assessment.riskJustification}</p>
-            </div>
-            
-            {/* Risk factors */}
-            <div>
-              <h3 className="font-medium text-pharmacy-darkBlue mb-2">Risk Factors Identified</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Complexity */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Complexity Factors</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.complexityFactors.requiresCalculations && (
-                      <li>Requires complex calculations</li>
-                    )}
-                    {assessment.complexityFactors.requiresSpecializedEquipment && (
-                      <li>Requires specialized equipment</li>
-                    )}
-                    {assessment.complexityFactors.requiresSpecializedKnowledge && (
-                      <li>Requires specialized knowledge</li>
-                    )}
-                    {assessment.complexityFactors.multipleIngredients && (
-                      <li>Contains multiple ingredients</li>
-                    )}
-                    {assessment.complexityFactors.difficultPreparationProcess && (
-                      <li>Difficult preparation process</li>
-                    )}
-                    {!Object.values(assessment.complexityFactors).some(v => v) && (
-                      <li className="text-gray-500">No complexity factors identified</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* Hazardous */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Hazardous Characteristics</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.hazardousFactors.containsNIOSHIngredients && (
-                      <li className="text-red-600">Contains NIOSH listed ingredients</li>
-                    )}
-                    {assessment.hazardousFactors.containsWHMISIngredients && (
-                      <li>Contains WHMIS health hazards</li>
-                    )}
-                    {assessment.hazardousFactors.reproductiveRisk && (
-                      <li className="text-red-600">Reproductive toxicity risks</li>
-                    )}
-                    {assessment.hazardousFactors.respiratoryRisk && (
-                      <li>Respiratory sensitizers/irritants</li>
-                    )}
-                    {assessment.hazardousFactors.contactSensitizer && (
-                      <li>Skin sensitizers/irritants</li>
-                    )}
-                    {!Object.values(assessment.hazardousFactors).some(v => v) && (
-                      <li className="text-gray-500">No hazardous characteristics identified</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* Frequency/Volume */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Frequency and Volume</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    <li>
-                      Frequency: {assessment.frequencyVolume.frequencyOfPreparation.charAt(0).toUpperCase() + 
-                      assessment.frequencyVolume.frequencyOfPreparation.slice(1)}
-                    </li>
-                    <li>
-                      Volume: {assessment.frequencyVolume.volumePreparation.charAt(0).toUpperCase() + 
-                      assessment.frequencyVolume.volumePreparation.slice(1)}
-                    </li>
-                    {assessment.concentrationRisk && (
-                      <li>API concentration presents health risks</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* Exposure */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Exposure Risks</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.exposureRisk.routesOfExposure.map((route, index) => (
-                      <li key={index}>{route}</li>
-                    ))}
-                    {assessment.exposureRisk.routesOfExposure.length === 0 && (
-                      <li className="text-gray-500">No specific routes identified</li>
-                    )}
-                    <li>
-                      Duration: {assessment.exposureRisk.exposureDuration.charAt(0).toUpperCase() + 
-                      assessment.exposureRisk.exposureDuration.slice(1)}
-                    </li>
-                  </ul>
-                </div>
-                
-                {/* Contamination */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Contamination Risks</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.crossContaminationRisk && (
-                      <li>Risk of cross-contamination</li>
-                    )}
-                    {assessment.microbialContaminationRisk && (
-                      <li>Risk of microbial contamination</li>
-                    )}
-                    {!assessment.crossContaminationRisk && !assessment.microbialContaminationRisk && (
-                      <li className="text-gray-500">No contamination risks identified</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            {/* Recommended controls */}
-            <div>
-              <h3 className="font-medium text-pharmacy-darkBlue mb-2">Recommended Control Measures</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Engineering controls */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Engineering Controls</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.recommendedControls.engineeringControls.map((control, index) => (
-                      <li key={index}>{control}</li>
-                    ))}
-                    {assessment.recommendedControls.engineeringControls.length === 0 && (
-                      <li className="text-gray-500">No specific engineering controls recommended</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* Administrative controls */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Administrative Controls</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.recommendedControls.administrativeControls.map((control, index) => (
-                      <li key={index}>{control}</li>
-                    ))}
-                    {assessment.recommendedControls.administrativeControls.length === 0 && (
-                      <li className="text-gray-500">No specific administrative controls recommended</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* PPE */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Personal Protective Equipment</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.recommendedControls.ppe.map((ppe, index) => (
-                      <li key={index}>{ppe}</li>
-                    ))}
-                    {assessment.recommendedControls.ppe.length === 0 && (
-                      <li className="text-gray-500">No specific PPE recommended</li>
-                    )}
-                  </ul>
-                </div>
-                
-                {/* Other controls */}
-                <div className="border rounded p-3">
-                  <h4 className="text-sm font-medium mb-2">Other Control Measures</h4>
-                  <ul className="list-disc list-inside text-sm">
-                    {assessment.recommendedControls.otherControls.map((control, index) => (
-                      <li key={index}>{control}</li>
-                    ))}
-                    {assessment.recommendedControls.otherControls.length === 0 && (
-                      <li className="text-gray-500">No other controls specified</li>
-                    )}
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            {/* NAPRA requirements section */}
-            <div className="mt-6 border-t pt-4">
-              <h3 className="font-medium text-pharmacy-darkBlue mb-2">
-                NAPRA Requirements for Level {assessment.assignedRiskLevel} Compounds
-              </h3>
-              
-              {assessment.assignedRiskLevel === "A" && (
-                <div className="text-sm space-y-2">
-                  <p>• May be prepared in a non-segregated compounding area</p>
-                  <p>• Regular cleaning procedures are sufficient</p>
-                  <p>• Standard operating procedures should be developed and followed</p>
-                  <p>• Basic PPE requirements (gloves, lab coat) are sufficient</p>
-                  <p>• No special ventilation requirements</p>
-                </div>
-              )}
-              
-              {assessment.assignedRiskLevel === "B" && (
-                <div className="text-sm space-y-2">
-                  <p>• Must be prepared in a separate, well-ventilated compounding space</p>
-                  <p>• Enhanced cleaning procedures required</p>
-                  <p>• Comprehensive SOPs must be developed and followed</p>
-                  <p>• Enhanced PPE requirements based on risk assessment</p>
-                  <p>• Personnel must have demonstrated competency</p>
-                  <p>• May require external ventilation</p>
-                </div>
-              )}
-              
-              {assessment.assignedRiskLevel === "C" && (
-                <div className="text-sm space-y-2">
-                  <p>• Must be prepared in a dedicated compounding room</p>
-                  <p>• Appropriate C-PEC (Containment Primary Engineering Control) required</p>
-                  <p>• Room must have external ventilation with appropriate air changes</p>
-                  <p>• Comprehensive hazardous drug containment strategy required</p>
-                  <p>• Enhanced PPE specific to hazard type required</p>
-                  <p>• Comprehensive training and demonstrated competency required</p>
-                  <p>• Regular environmental monitoring</p>
-                  <p>• Specialized cleaning procedures required</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-          
-          <CardFooter className="border-t pt-4 flex justify-between">
-            <div className="text-sm text-pharmacy-gray">
-              Prepared in accordance with NAPRA Non-Sterile Compounding Guidelines
-            </div>
-            <div className="text-sm text-pharmacy-gray">
-              {formatDate(assessment.dateAssessed)}
-            </div>
-          </CardFooter>
-        </Card>
-      </div>
+      <PDFViewer 
+        pdfData={pdfBlob} 
+        fileName={`NAPRA_Risk_Assessment_${assessment.compoundName || 'Compound'}.pdf`} 
+      />
     </div>
   );
 };

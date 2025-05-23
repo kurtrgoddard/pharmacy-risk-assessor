@@ -81,6 +81,7 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
   const compoundingTypeOptions = ["Sterile", "Non-Sterile"];
   const riskLevelOptions = ["Level A", "Level B", "Level C"];
   const ppeOptions = ["Gloves", "Gown", "Mask", "Eye Protection"];
+  const engineeringControlOptions = ["Containment Hood", "BSC", "HEPA Filter", "Ventilation"];
 
   const handleChange = (
     section: string,
@@ -233,7 +234,25 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
                     </div>
                   </div>
                   
-                  <div>
+                  <div className="mt-4">
+                    <Label>Engineering Controls</Label>
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      {engineeringControlOptions.map((control) => (
+                        <div key={control} className="flex items-center space-x-2">
+                          <Checkbox 
+                            id={`engineering-${control}`}
+                            checked={assessment.recommendedControls.engineeringControls.includes(control)}
+                            onCheckedChange={(checked) => handleCheckboxListChange(
+                              "recommendedControls", "engineeringControls", control, !!checked
+                            )}
+                          />
+                          <Label htmlFor={`engineering-${control}`}>{control}</Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-4">
                     <Label htmlFor="other-controls">Other Control Measures</Label>
                     <Textarea 
                       id="other-controls"
