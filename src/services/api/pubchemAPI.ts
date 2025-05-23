@@ -1,10 +1,9 @@
-
 interface PubChemCompound {
   CID: number;
   Title: string;
-  MolecularFormula: string;
-  MolecularWeight: number;
-  IUPACName: string;
+  MolecularFormula?: string;
+  MolecularWeight?: number;
+  IUPACName?: string;
 }
 
 interface PubChemPropertyResponse {
