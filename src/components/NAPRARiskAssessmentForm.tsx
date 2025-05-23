@@ -8,26 +8,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Check, Info } from "lucide-react";
+import { Check } from "lucide-react";
 import { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
+
+// Import refactored components
+import CompoundInfoSection from "./napra-form/CompoundInfoSection";
+import CompoundingTypeSection from "./napra-form/CompoundingTypeSection";
+import RiskLevelAssignmentSection from "./napra-form/RiskLevelAssignmentSection";
+import RecommendedControlsSection from "./napra-form/RecommendedControlsSection";
+import GuidelinesInfo from "./napra-form/GuidelinesInfo";
 
 interface NAPRARiskAssessmentFormProps {
   initialData?: KeswickAssessmentData;
@@ -133,157 +126,36 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
         </CardHeader>
         <CardContent>
           <Accordion type="single" collapsible>
-            <AccordionItem value="item-1">
-              <AccordionTrigger>Compound Information</AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="compound-name">Compound Name</Label>
-                    <Input
-                      type="text"
-                      id="compound-name"
-                      placeholder="Enter compound name"
-                      value={assessment.compoundName}
-                      onChange={(e) =>
-                        handleChange("compoundInfo", "compoundName", e.target.value)
-                      }
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="din">DIN</Label>
-                    <Input
-                      type="text"
-                      id="din"
-                      placeholder="Enter DIN"
-                      value={assessment.din}
-                      onChange={(e) => handleChange("compoundInfo", "din", e.target.value)}
-                    />
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-2">
-              <AccordionTrigger>Compounding Type</AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1">
-                  <Label>Select Compounding Type</Label>
-                  <Select
-                    value={assessment.compoundingType}
-                    onValueChange={(value) =>
-                      handleChange("compoundingType", "compoundingType", value)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a compounding type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {compoundingTypeOptions.map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {type}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-3">
-              <AccordionTrigger>Risk Level Assignment</AccordionTrigger>
-              <AccordionContent>
-                <div className="grid grid-cols-1">
-                  <Label>Assign Risk Level</Label>
-                  <Select
-                    value={assessment.assignedRiskLevel}
-                    onValueChange={(value) =>
-                      handleChange("riskLevel", "assignedRiskLevel", value)
-                    }
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a risk level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {riskLevelOptions.map((level) => (
-                        <SelectItem key={level} value={level}>
-                          {level}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-4">
-              <AccordionTrigger>Recommended Controls</AccordionTrigger>
-              <AccordionContent>
-                <div>
-                  <div>
-                    <Label>Recommended PPE</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {ppeOptions.map((ppe) => (
-                        <div key={ppe} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`ppe-${ppe}`}
-                            checked={assessment.recommendedControls.ppe.includes(ppe)}
-                            onCheckedChange={(checked) => handleCheckboxListChange(
-                              "recommendedControls", "ppe", ppe, !!checked
-                            )}
-                          />
-                          <Label htmlFor={`ppe-${ppe}`}>{ppe}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <Label>Engineering Controls</Label>
-                    <div className="grid grid-cols-2 gap-2 mt-2">
-                      {engineeringControlOptions.map((control) => (
-                        <div key={control} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={`engineering-${control}`}
-                            checked={assessment.recommendedControls.engineeringControls.includes(control)}
-                            onCheckedChange={(checked) => handleCheckboxListChange(
-                              "recommendedControls", "engineeringControls", control, !!checked
-                            )}
-                          />
-                          <Label htmlFor={`engineering-${control}`}>{control}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4">
-                    <Label htmlFor="other-controls">Other Control Measures</Label>
-                    <Textarea 
-                      id="other-controls"
-                      placeholder="Enter any additional control measures"
-                      value={assessment.recommendedControls.otherControls.join("\n")}
-                      onChange={(e) => handleChange(
-                        "recommendedControls", 
-                        "otherControls", 
-                        e.target.value.split("\n").filter(line => line.trim() !== "")
-                      )}
-                      className="mt-2"
-                    />
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
+            <CompoundInfoSection 
+              compoundName={assessment.compoundName}
+              din={assessment.din}
+              onValueChange={handleChange}
+            />
+            
+            <CompoundingTypeSection 
+              compoundingType={assessment.compoundingType}
+              compoundingTypeOptions={compoundingTypeOptions}
+              onValueChange={handleChange}
+            />
+            
+            <RiskLevelAssignmentSection 
+              assignedRiskLevel={assessment.assignedRiskLevel}
+              riskLevelOptions={riskLevelOptions}
+              onValueChange={handleChange}
+            />
+            
+            <RecommendedControlsSection 
+              ppeOptions={ppeOptions}
+              engineeringControlOptions={engineeringControlOptions}
+              selectedPPE={assessment.recommendedControls.ppe}
+              selectedEngineeringControls={assessment.recommendedControls.engineeringControls}
+              otherControls={assessment.recommendedControls.otherControls}
+              onCheckboxListChange={handleCheckboxListChange}
+              onValueChange={handleChange}
+            />
           </Accordion>
           
-          <div className="bg-blue-50 p-4 rounded-lg mt-4">
-            <div className="flex items-start">
-              <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5 flex-shrink-0" />
-              <div>
-                <h4 className="text-sm font-medium text-blue-900">NAPRA Guidelines</h4>
-                <p className="text-xs text-blue-800 mt-1">
-                  <strong>Level A:</strong> Simple compounding with low risk, prepared in a non-segregated compounding area.<br />
-                  <strong>Level B:</strong> Complex compounding or moderate hazard, requires segregated compounding area.<br />
-                  <strong>Level C:</strong> Complex compounding with high hazard, requires dedicated room with appropriate C-PEC.
-                </p>
-              </div>
-            </div>
-          </div>
+          <GuidelinesInfo />
         </CardContent>
         <CardFooter className="flex justify-between">
           <Button variant="outline" type="button" onClick={onCancel}>
