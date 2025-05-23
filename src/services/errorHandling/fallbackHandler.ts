@@ -1,6 +1,6 @@
 
 import { toast } from "@/hooks/use-toast";
-import { FallbackOperation, FallbackOptions, FallbackResult } from './types';
+import { FallbackOperation, FallbackOptions, FallbackResult, CircuitBreakerOptions } from './types';
 import { SafeDefaults } from './safeDefaults';
 import { TimeoutUtils } from './timeoutUtils';
 import { CircuitBreaker } from './circuitBreaker';
