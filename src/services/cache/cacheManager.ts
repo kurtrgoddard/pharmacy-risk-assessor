@@ -1,34 +1,19 @@
 
-// services/cache/cacheManager.ts
-interface CachedData<T = any> {
-  data: T;
-  timestamp: number;
-  type: CacheType;
-  source?: string;
-  hits?: number;
-}
-
-type CacheType = 'pubchem' | 'rxnorm' | 'dailymed' | 'assessment' | 'niosh';
+import { CachedData, CacheType, CacheStats, CacheOptions } from './types';
+import { MAX_CACHE_SIZE, CLEANUP_INTERVAL } from './config';
+import { CacheStatistics } from './statistics';
+import { CacheStorage } from './storage';
+import { CacheEviction } from './eviction';
 
 export class CacheManager {
   private cache: Map<string, CachedData> = new Map();
-  private readonly maxCacheSize = 1000; // Maximum number of cached items
-  
-  // TTL configuration in milliseconds
-  private readonly TTL_CONFIG: Record<CacheType, number> = {
-    pubchem: 7 * 24 * 60 * 60 * 1000,    // 7 days
-    rxnorm: 30 * 24 * 60 * 60 * 1000,    // 30 days  
-    dailymed: 24 * 60 * 60 * 1000,       // 24 hours
-    assessment: 60 * 60 * 1000,           // 1 hour
-    niosh: 365 * 24 * 60 * 60 * 1000     // 1 year (updated annually)
-  };
 
   constructor() {
     // Initialize cache from localStorage if available
-    this.loadFromStorage();
+    this.cache = CacheStorage.loadFromStorage();
     
     // Set up periodic cleanup
-    setInterval(() => this.cleanup(), 60 * 60 * 1000); // Cleanup every hour
+    setInterval(() => this.cleanup(), CLEANUP_INTERVAL);
   }
 
   /**
@@ -38,10 +23,7 @@ export class CacheManager {
     key: string, 
     fetcher: () => Promise<T>, 
     dataType: CacheType,
-    options?: {
-      forceRefresh?: boolean;
-      source?: string;
-    }
+    options?: CacheOptions
   ): Promise<T> {
     const cacheKey = this.createCacheKey(key, dataType);
     
@@ -80,7 +62,7 @@ export class CacheManager {
     }
 
     // Check if expired
-    if (this.isExpired(cached, dataType)) {
+    if (CacheStorage.isExpired(cached, dataType)) {
       this.cache.delete(key);
       return null;
     }
@@ -96,8 +78,8 @@ export class CacheManager {
    */
   set<T>(key: string, data: T, dataType: CacheType, source?: string): void {
     // Implement LRU eviction if cache is full
-    if (this.cache.size >= this.maxCacheSize) {
-      this.evictLeastRecentlyUsed();
+    if (this.cache.size >= MAX_CACHE_SIZE) {
+      CacheEviction.evictLeastRecentlyUsed(this.cache);
     }
 
     this.cache.set(key, {
@@ -135,48 +117,7 @@ export class CacheManager {
    * Get cache statistics
    */
   getStats(): CacheStats {
-    const stats: CacheStats = {
-      totalItems: this.cache.size,
-      sizeInBytes: this.estimateCacheSize(),
-      itemsByType: {
-        pubchem: 0,
-        rxnorm: 0,
-        dailymed: 0,
-        assessment: 0,
-        niosh: 0
-      },
-      hitRate: 0,
-      oldestItem: null,
-      newestItem: null
-    };
-
-    let totalHits = 0;
-    let totalRequests = 0;
-    let oldestTimestamp = Infinity;
-    let newestTimestamp = 0;
-
-    for (const [key, value] of this.cache.entries()) {
-      // Count by type
-      stats.itemsByType[value.type] = (stats.itemsByType[value.type] || 0) + 1;
-      
-      // Track hits
-      totalHits += value.hits || 0;
-      totalRequests += (value.hits || 0) + 1; // +1 for initial fetch
-      
-      // Track age
-      if (value.timestamp < oldestTimestamp) {
-        oldestTimestamp = value.timestamp;
-        stats.oldestItem = { key, timestamp: value.timestamp };
-      }
-      if (value.timestamp > newestTimestamp) {
-        newestTimestamp = value.timestamp;
-        stats.newestItem = { key, timestamp: value.timestamp };
-      }
-    }
-
-    stats.hitRate = totalRequests > 0 ? totalHits / totalRequests : 0;
-    
-    return stats;
+    return CacheStatistics.generateStats(this.cache);
   }
 
   /**
@@ -226,16 +167,11 @@ export class CacheManager {
     return `${dataType}:${key.toLowerCase()}`;
   }
 
-  private isExpired(cached: CachedData, dataType: CacheType): boolean {
-    const ttl = this.TTL_CONFIG[dataType];
-    return Date.now() - cached.timestamp > ttl;
-  }
-
   private cleanup(): void {
     let removed = 0;
     
     for (const [key, value] of this.cache.entries()) {
-      if (this.isExpired(value, value.type)) {
+      if (CacheStorage.isExpired(value, value.type)) {
         this.cache.delete(key);
         removed++;
       }
@@ -247,132 +183,10 @@ export class CacheManager {
     }
   }
 
-  private evictLeastRecentlyUsed(): void {
-    let lruKey: string | null = null;
-    let lruTimestamp = Infinity;
-    let lruHits = Infinity;
-
-    // Find least recently used item
-    for (const [key, value] of this.cache.entries()) {
-      const score = value.timestamp + (value.hits || 0) * 3600000; // 1 hour bonus per hit
-      if (score < lruTimestamp + lruHits * 3600000) {
-        lruKey = key;
-        lruTimestamp = value.timestamp;
-        lruHits = value.hits || 0;
-      }
-    }
-
-    if (lruKey) {
-      this.cache.delete(lruKey);
-    }
-  }
-
-  private estimateCacheSize(): number {
-    // Rough estimation of cache size in bytes
-    let size = 0;
-    
-    for (const [key, value] of this.cache.entries()) {
-      size += key.length * 2; // UTF-16
-      size += JSON.stringify(value.data).length * 2;
-      size += 50; // Metadata overhead
-    }
-    
-    return size;
-  }
-
-  private loadFromStorage(): void {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      const stored = localStorage.getItem('pharma_cache');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        
-        // Restore cache with type checking
-        for (const [key, value] of Object.entries(parsed)) {
-          if (this.isValidCachedData(value)) {
-            this.cache.set(key, value as CachedData);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load cache from storage:', error);
-    }
-  }
-
   private saveToStorage(): void {
-    if (typeof window === 'undefined') return;
-    
-    try {
-      // Only save non-expired items
-      const toSave: Record<string, CachedData> = {};
-      
-      for (const [key, value] of this.cache.entries()) {
-        if (!this.isExpired(value, value.type)) {
-          toSave[key] = value;
-        }
-      }
-      
-      localStorage.setItem('pharma_cache', JSON.stringify(toSave));
-    } catch (error) {
-      console.error('Failed to save cache to storage:', error);
-      
-      // If storage is full, clear old data
-      if (error.name === 'QuotaExceededError') {
-        this.clear('assessment'); // Clear shortest TTL items first
-        try {
-          localStorage.setItem('pharma_cache', JSON.stringify({}));
-        } catch {
-          // Give up on persistence
-        }
-      }
-    }
+    CacheStorage.saveToStorage(this.cache, (dataType) => this.clear(dataType));
   }
-
-  private isValidCachedData(value: any): value is CachedData {
-    return (
-      value &&
-      typeof value === 'object' &&
-      'data' in value &&
-      'timestamp' in value &&
-      'type' in value &&
-      Object.keys(this.TTL_CONFIG).includes(value.type)
-    );
-  }
-}
-
-// Types
-interface CacheStats {
-  totalItems: number;
-  sizeInBytes: number;
-  itemsByType: Record<CacheType, number>;
-  hitRate: number;
-  oldestItem: { key: string; timestamp: number } | null;
-  newestItem: { key: string; timestamp: number } | null;
 }
 
 // Export singleton instance
 export const cacheManager = new CacheManager();
-
-// Export cache decorator for easy use
-export function Cacheable(dataType: CacheType) {
-  return function (
-    target: any,
-    propertyKey: string,
-    descriptor: PropertyDescriptor
-  ) {
-    const originalMethod = descriptor.value;
-
-    descriptor.value = async function (...args: any[]) {
-      const cacheKey = `${target.constructor.name}.${propertyKey}:${JSON.stringify(args)}`;
-      
-      return cacheManager.getOrFetch(
-        cacheKey,
-        () => originalMethod.apply(this, args),
-        dataType
-      );
-    };
-
-    return descriptor;
-  };
-}
