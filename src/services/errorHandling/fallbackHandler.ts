@@ -1,31 +1,15 @@
 
 import { toast } from "@/hooks/use-toast";
+import { FallbackOperation, FallbackOptions, FallbackResult } from './types';
+import { SafeDefaults } from './safeDefaults';
+import { TimeoutUtils } from './timeoutUtils';
+import { CircuitBreaker } from './circuitBreaker';
+import { StatsTracker } from './statsTracker';
 
-export interface FallbackResult<T> {
-  success: boolean;
-  data: T;
-  source: string;
-  confidence: number;
-  errors?: Error[];
-  warning?: string;
-}
-
-interface FallbackOperation<T> {
-  name: string;
-  operation: () => Promise<T>;
-  confidence: number;
-}
-
-interface OperationStats {
-  totalCalls: number;
-  successfulCalls: number;
-  failedCalls: number;
-  averageDuration: number;
-  lastFailure: Date | null;
-}
+export * from './types';
 
 export class FallbackHandler {
-  private readonly operationStats = new Map<string, OperationStats>();
+  private readonly statsTracker = new StatsTracker();
   
   /**
    * Execute operations with fallback strategy
@@ -33,10 +17,7 @@ export class FallbackHandler {
   async executeWithFallback<T>(
     operations: FallbackOperation<T>[],
     context: string,
-    options?: {
-      timeout?: number;
-      acceptPartial?: boolean;
-    }
+    options?: FallbackOptions
   ): Promise<FallbackResult<T>> {
     const errors: Error[] = [];
     const startTime = Date.now();
@@ -48,11 +29,11 @@ export class FallbackHandler {
       try {
         // Apply timeout if specified
         const result = options?.timeout
-          ? await this.withTimeout(op.operation(), options.timeout)
+          ? await TimeoutUtils.withTimeout(op.operation(), options.timeout)
           : await op.operation();
 
         // Track success
-        this.recordOperationResult(op.name, true, Date.now() - startTime);
+        this.statsTracker.recordOperationResult(op.name, true, Date.now() - startTime);
 
         return {
           success: true,
@@ -64,7 +45,7 @@ export class FallbackHandler {
         errors.push(error as Error);
         
         // Track failure
-        this.recordOperationResult(op.name, false, Date.now() - startTime);
+        this.statsTracker.recordOperationResult(op.name, false, Date.now() - startTime);
         
         console.error(`${context} - ${op.name} failed:`, error);
       }
@@ -75,7 +56,7 @@ export class FallbackHandler {
     
     return {
       success: false,
-      data: this.getSafeDefault<T>(context),
+      data: SafeDefaults.getSafeDefault<T>(context),
       source: 'safe_default',
       confidence: 0.1,
       errors,
@@ -89,16 +70,13 @@ export class FallbackHandler {
   async executeParallelWithFallback<T>(
     operations: FallbackOperation<T>[],
     context: string,
-    options?: {
-      minSuccessRate?: number; // Minimum percentage of successful operations required
-      timeout?: number;
-    }
+    options?: FallbackOptions
   ): Promise<FallbackResult<T[]>> {
     const minSuccessRate = options?.minSuccessRate ?? 0.5;
     const results = await Promise.allSettled(
       operations.map(op => 
         options?.timeout 
-          ? this.withTimeout(op.operation(), options.timeout)
+          ? TimeoutUtils.withTimeout(op.operation(), options.timeout)
           : op.operation()
       )
     );
@@ -113,10 +91,10 @@ export class FallbackHandler {
         successful.push(result.value);
         totalConfidence += operations[index].confidence;
         successCount++;
-        this.recordOperationResult(operations[index].name, true, 0);
+        this.statsTracker.recordOperationResult(operations[index].name, true, 0);
       } else {
         errors.push(result.reason);
-        this.recordOperationResult(operations[index].name, false, 0);
+        this.statsTracker.recordOperationResult(operations[index].name, false, 0);
       }
     });
 
@@ -145,195 +123,28 @@ export class FallbackHandler {
   }
 
   /**
-   * Get safe default values based on context
+   * Create a circuit breaker for operations
    */
-  private getSafeDefault<T>(context: string): T {
-    // Define safe defaults for different contexts
-    const safeDefaults: Record<string, any> = {
-      'hazard_assessment': {
-        ingredientName: 'Unknown',
-        riskLevel: 'C', // Highest risk level
-        hazardClassifications: {
-          ghs: [{
-            code: 'DEFAULT',
-            category: 'Unknown Hazard',
-            description: 'Hazard data unavailable - assume highest risk',
-            source: 'System Default'
-          }],
-          niosh: {
-            table: 1,
-            category: 'Unknown - Assume Hazardous'
-          }
-        },
-        safetyInfo: {
-          handlingPrecautions: [
-            'Use maximum PPE including respirator',
-            'Handle in certified fume hood only',
-            'Minimize exposure time',
-            'Consult safety officer before handling'
-          ],
-          ppeRequirements: [
-            { type: 'respirator', specification: 'N95 or higher' },
-            { type: 'gloves', specification: 'Double nitrile gloves' },
-            { type: 'gown', specification: 'Disposable chemotherapy gown' },
-            { type: 'eyewear', specification: 'Safety goggles with face shield' }
-          ],
-          engineeringControls: [
-            'Biological safety cabinet or fume hood required',
-            'Negative pressure room recommended',
-            'Closed system drug transfer devices required'
-          ]
-        },
-        dataQuality: {
-          sources: ['safe_default'],
-          confidence: 0.1,
-          lastUpdated: new Date(),
-          warnings: ['No data available - using maximum safety protocols']
-        }
-      },
-      
-      'physical_properties': {
-        physicalForm: 'powder', // Most hazardous form
-        solubility: 'unknown',
-        molecularWeight: null
-      },
-      
-      'risk_level': 'C', // Always default to highest risk
-      
-      'ppe_requirements': [
-        { type: 'respirator', specification: 'N95 minimum' },
-        { type: 'gloves', specification: 'Double gloves required' },
-        { type: 'gown', specification: 'Protective gown required' },
-        { type: 'eyewear', specification: 'Safety glasses minimum' }
-      ]
-    };
-
-    // Extract base context (remove specific details)
-    const baseContext = context.toLowerCase().split(' ').find(word => 
-      Object.keys(safeDefaults).some(key => word.includes(key.split('_')[0]))
-    ) || 'hazard_assessment';
-
-    const defaultKey = Object.keys(safeDefaults).find(key => 
-      baseContext.includes(key.split('_')[0])
-    ) || 'hazard_assessment';
-
-    return safeDefaults[defaultKey] as T;
-  }
-
-  /**
-   * Add timeout to promise
-   */
-  private async withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
-    const timeout = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs);
-    });
-
-    return Promise.race([promise, timeout]);
-  }
-
-  /**
-   * Record operation statistics for monitoring
-   */
-  private recordOperationResult(operationName: string, success: boolean, duration: number): void {
-    const stats = this.operationStats.get(operationName) || {
-      totalCalls: 0,
-      successfulCalls: 0,
-      failedCalls: 0,
-      averageDuration: 0,
-      lastFailure: null
-    };
-
-    stats.totalCalls++;
-    if (success) {
-      stats.successfulCalls++;
-    } else {
-      stats.failedCalls++;
-      stats.lastFailure = new Date();
-    }
-
-    // Update average duration
-    stats.averageDuration = (stats.averageDuration * (stats.totalCalls - 1) + duration) / stats.totalCalls;
-
-    this.operationStats.set(operationName, stats);
+  createCircuitBreaker<T>(
+    operation: () => Promise<T>,
+    operationName: string,
+    options?: CircuitBreakerOptions
+  ): () => Promise<T> {
+    return CircuitBreaker.create(operation, operationName, options);
   }
 
   /**
    * Get operation reliability statistics
    */
-  getOperationStats(): Map<string, OperationStats> {
-    return new Map(this.operationStats);
+  getOperationStats() {
+    return this.statsTracker.getOperationStats();
   }
 
   /**
    * Check if an operation is currently reliable
    */
   isOperationReliable(operationName: string, threshold: number = 0.8): boolean {
-    const stats = this.operationStats.get(operationName);
-    if (!stats || stats.totalCalls < 10) {
-      return true; // Not enough data, assume reliable
-    }
-
-    const successRate = stats.successfulCalls / stats.totalCalls;
-    
-    // Also check if there have been recent failures
-    if (stats.lastFailure) {
-      const timeSinceFailure = Date.now() - stats.lastFailure.getTime();
-      const fiveMinutes = 5 * 60 * 1000;
-      
-      if (timeSinceFailure < fiveMinutes) {
-        return false; // Recent failure, consider unreliable
-      }
-    }
-
-    return successRate >= threshold;
-  }
-
-  /**
-   * Create a circuit breaker for operations
-   */
-  createCircuitBreaker<T>(
-    operation: () => Promise<T>,
-    operationName: string,
-    options?: {
-      failureThreshold?: number;
-      resetTimeout?: number;
-    }
-  ): () => Promise<T> {
-    const failureThreshold = options?.failureThreshold ?? 5;
-    const resetTimeout = options?.resetTimeout ?? 60000; // 1 minute
-
-    let consecutiveFailures = 0;
-    let circuitOpen = false;
-    let lastFailureTime = 0;
-
-    return async () => {
-      // Check if circuit should be reset
-      if (circuitOpen && Date.now() - lastFailureTime > resetTimeout) {
-        circuitOpen = false;
-        consecutiveFailures = 0;
-      }
-
-      // If circuit is open, fail fast
-      if (circuitOpen) {
-        throw new Error(`Circuit breaker open for ${operationName}`);
-      }
-
-      try {
-        const result = await operation();
-        consecutiveFailures = 0; // Reset on success
-        return result;
-      } catch (error) {
-        consecutiveFailures++;
-        lastFailureTime = Date.now();
-
-        if (consecutiveFailures >= failureThreshold) {
-          circuitOpen = true;
-          console.error(`Circuit breaker opened for ${operationName} after ${consecutiveFailures} failures`);
-        }
-
-        throw error;
-      }
-    };
+    return this.statsTracker.isOperationReliable(operationName, threshold);
   }
 }
 
