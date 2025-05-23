@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Download, FilePdf } from "lucide-react";
+import { ArrowLeft, Download, FileText } from "lucide-react";
 import { PDFViewer } from "@/components";
 import { toast } from "sonner";
 
@@ -108,7 +108,7 @@ const NAPRAAssessmentReport: React.FC<NAPRAAssessmentReportProps> = ({
               onClick={handleDownload} 
               className="bg-pharmacy-blue hover:bg-pharmacy-darkBlue"
             >
-              <FilePdf className="mr-2 h-4 w-4" />
+              <FileText className="mr-2 h-4 w-4" />
               Download PDF Report
             </Button>
           </div>
