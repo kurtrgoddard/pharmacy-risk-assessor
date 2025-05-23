@@ -138,7 +138,13 @@ export class CacheManager {
     const stats: CacheStats = {
       totalItems: this.cache.size,
       sizeInBytes: this.estimateCacheSize(),
-      itemsByType: {},
+      itemsByType: {
+        pubchem: 0,
+        rxnorm: 0,
+        dailymed: 0,
+        assessment: 0,
+        niosh: 0
+      },
       hitRate: 0,
       oldestItem: null,
       newestItem: null
