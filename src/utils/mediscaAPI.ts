@@ -1,8 +1,11 @@
-
 /**
  * Medisca API Utilities
  * Provides functions for retrieving and parsing Safety Data Sheets (SDS)
  */
+
+// Add new imports
+import { dataOrchestrator } from '@/services/assessment/dataOrchestrator';
+import { HazardAssessment, SDSInfo, SDSSearchResult } from '@/types/api';
 
 // Define SDS data structure
 export interface SDSData {
@@ -58,6 +61,154 @@ export const openSdsDocument = (ingredientName: string): void => {
     throw new Error(`Could not open SDS for ${ingredientName}`);
   }
 };
+
+// Enhanced SDS service class
+export class MediscaSDSService {
+  // Updated getSDSInfo method
+  async getSDSInfo(ingredientName: string): Promise<SDSInfo> {
+    try {
+      // Try to get real data first
+      const realData = await dataOrchestrator.getComprehensiveHazardData(ingredientName);
+      
+      if (realData.dataQuality.confidence > 0.7) {
+        return this.transformToSDSFormat(realData);
+      }
+    } catch (error) {
+      console.warn('Failed to get real SDS data, using mock:', error);
+    }
+    
+    // Fall back to existing mock data logic
+    return this.generateMockSDS(ingredientName);
+  }
+
+  // Transform real hazard data to SDS format
+  private transformToSDSFormat(hazardData: HazardAssessment): SDSInfo {
+    return {
+      productName: hazardData.ingredientName,
+      casNumber: hazardData.casNumber || 'N/A',
+      physicalForm: hazardData.physicalProperties.physicalForm,
+      hazardClassifications: hazardData.hazardClassifications.ghs.map(ghs => ({
+        category: ghs.category,
+        pictogram: ghs.pictogram || 'GHS07',
+        signalWord: 'Warning',
+        hazardStatement: ghs.description
+      })),
+      ppeRequirements: hazardData.safetyInfo.ppeRequirements,
+      handlingPrecautions: hazardData.safetyInfo.handlingPrecautions,
+      storageRequirements: [
+        'Store in a cool, dry place',
+        'Keep container tightly closed',
+        'Store away from incompatible materials',
+        'Follow manufacturer recommendations'
+      ],
+      spillResponse: hazardData.safetyInfo.spillResponse,
+      firstAid: {
+        inhalation: 'Remove to fresh air. Seek medical attention if symptoms persist.',
+        skinContact: 'Wash with soap and water. Remove contaminated clothing.',
+        eyeContact: 'Flush with water for 15 minutes. Seek medical attention.',
+        ingestion: 'Do not induce vomiting. Seek immediate medical attention.'
+      },
+      fireHazard: this.determineFireHazard(hazardData),
+      sdsUrl: `https://medisca.com/sds/${encodeURIComponent(hazardData.ingredientName)}`
+    };
+  }
+
+  // Determine fire hazard from hazard data
+  private determineFireHazard(hazardData: HazardAssessment): string {
+    const hasFlammableGHS = hazardData.hazardClassifications.ghs.some(ghs =>
+      ghs.description.toLowerCase().includes('flammable') ||
+      ghs.description.toLowerCase().includes('combustible')
+    );
+    
+    if (hasFlammableGHS) {
+      return 'Flammable - Keep away from heat and ignition sources';
+    }
+    
+    return 'No special fire hazards';
+  }
+
+  // Generate mock SDS for fallback
+  private generateMockSDS(ingredientName: string): SDSInfo {
+    const mockSdsData = generateMockSdsData(ingredientName);
+    
+    return {
+      productName: mockSdsData.ingredientName,
+      casNumber: 'N/A',
+      physicalForm: mockSdsData.physicalForm || 'powder',
+      hazardClassifications: mockSdsData.hazardClassification.ghs.map(hazard => ({
+        category: 'Category 2',
+        pictogram: 'GHS07',
+        signalWord: 'Warning',
+        hazardStatement: hazard
+      })),
+      ppeRequirements: [
+        { type: 'gloves', specification: mockSdsData.recommendedPPE.gloves },
+        { type: 'eyewear', specification: mockSdsData.recommendedPPE.eyeProtection },
+        { type: 'respirator', specification: mockSdsData.recommendedPPE.respiratoryProtection },
+        { type: 'gown', specification: mockSdsData.recommendedPPE.bodyProtection }
+      ],
+      handlingPrecautions: mockSdsData.handlingPrecautions,
+      storageRequirements: [
+        'Store in a cool, dry place',
+        'Keep container tightly closed'
+      ],
+      spillResponse: [
+        'Absorb spill with appropriate material',
+        'Clean area with appropriate cleaner'
+      ],
+      firstAid: {
+        inhalation: 'Remove to fresh air. Seek medical attention if symptoms persist.',
+        skinContact: 'Wash with soap and water. Remove contaminated clothing.',
+        eyeContact: 'Flush with water for 15 minutes. Seek medical attention.',
+        ingestion: 'Do not induce vomiting. Seek immediate medical attention.'
+      },
+      fireHazard: 'No special fire hazards',
+      sdsUrl: getMediscaSdsUrl(ingredientName)
+    };
+  }
+
+  // Updated search method
+  async searchSDS(query: string): Promise<SDSSearchResult[]> {
+    try {
+      // Try to get real data for the search query
+      const realData = await dataOrchestrator.getComprehensiveHazardData(query);
+      
+      if (realData && realData.dataQuality.confidence > 0.5) {
+        // Return a search result based on real data
+        return [{
+          productName: realData.ingredientName,
+          casNumber: realData.casNumber || 'N/A',
+          manufacturer: 'Various',
+          sdsUrl: `https://medisca.com/sds/${encodeURIComponent(realData.ingredientName)}`,
+          lastUpdated: realData.dataQuality.lastUpdated.toISOString().split('T')[0]
+        }];
+      }
+    } catch (error) {
+      console.warn('Failed to search real SDS data:', error);
+    }
+    
+    // Fall back to mock search results
+    return this.generateMockSearchResults(query);
+  }
+
+  // Generate mock search results
+  private generateMockSearchResults(query: string): SDSSearchResult[] {
+    const mockResults = [
+      {
+        productName: query,
+        casNumber: '123-45-6',
+        manufacturer: 'Medisca',
+        sdsUrl: getMediscaSdsUrl(query),
+        lastUpdated: new Date().toISOString().split('T')[0]
+      }
+    ];
+    
+    return mockResults;
+  }
+}
+
+// Create singleton instance
+export const mediscaSDSService = new MediscaSDSService();
 
 // Get SDS data for an ingredient
 export const getSdsData = async (ingredientName: string): Promise<SDSData | null> => {
