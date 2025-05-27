@@ -1,10 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { Info, FileDown, FileText } from "lucide-react";
+import { Info, FileDown, FileText, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SDSData } from "@/utils/mediscaAPI";
 import { Skeleton } from "@/components/ui/skeleton";
-import { openSdsDocument } from "@/utils/sdsUrlService";
+import { openSdsDocument, getReliableChemicalSearchUrls } from "@/utils/sdsUrlService";
 import { SDSBadges } from "./sds/SDSBadges";
 import { SDSContent } from "./sds/SDSContent";
 
@@ -73,9 +73,9 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     } else {
       try {
         openSdsDocument(ingredientName);
-        console.log(`Opening reliable chemical database for ${ingredientName}`);
+        console.log(`Opening reliable chemical databases for ${ingredientName}`);
       } catch (error) {
-        console.error(`Error opening SDS for ${ingredientName}:`, error);
+        console.error(`Error opening SDS sources for ${ingredientName}:`, error);
       }
     }
   };
@@ -109,9 +109,10 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
             size="sm"
             onClick={handleViewSds}
             className="text-xs"
+            title="Search reliable chemical databases (PubChem, ChemSpider, EPA) for SDS information"
           >
-            <FileDown className="w-3 h-3 mr-1" />
-            Try View SDS
+            <ExternalLink className="w-3 h-3 mr-1" />
+            Find SDS
           </Button>
         </div>
       </div>
@@ -138,9 +139,9 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
               handleViewSds();
             }}
             className="text-xs"
-            title="Opens reliable chemical databases (PubChem, EPA, etc.) for SDS information"
+            title="Search multiple reliable chemical databases for comprehensive SDS information"
           >
-            <FileDown className="w-3 h-3 mr-1" />
+            <ExternalLink className="w-3 h-3 mr-1" />
             Find SDS
           </Button>
         </div>

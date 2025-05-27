@@ -1,8 +1,10 @@
 
 import React from "react";
-import { Info, AlertTriangle } from "lucide-react";
+import { Info, AlertTriangle, ExternalLink } from "lucide-react";
 import { SDSData } from "@/utils/mediscaAPI";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Button } from "@/components/ui/button";
+import { getReliableChemicalSearchUrls } from "@/utils/sdsUrlService";
 
 interface SDSContentProps {
   sdsData: SDSData;
@@ -35,17 +37,33 @@ export const SDSContent: React.FC<SDSContentProps> = ({ sdsData, ingredientName 
     );
   };
 
+  const reliableSources = getReliableChemicalSearchUrls(ingredientName);
+
   return (
     <div className="p-4 border-t bg-white">
       <div className="mb-3 px-4 py-2 bg-blue-50 rounded-md text-sm border border-blue-200">
         <div className="flex items-start space-x-2">
           <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <span className="font-medium text-blue-800">SDS Document Access:</span>
+          <div className="flex-1">
+            <span className="font-medium text-blue-800">Reliable SDS Sources:</span>
             <p className="text-blue-700 text-xs mt-1">
-              Clicking "View SDS" attempts multiple Medisca URL formats. If unsuccessful, 
-              check browser console for alternative sources including PubChem and ChemSpider.
+              Access multiple verified chemical databases for comprehensive safety information.
             </p>
+            <div className="mt-2 space-y-1">
+              {reliableSources.slice(0, 3).map((source, index) => (
+                <div key={index} className="flex items-center justify-between">
+                  <span className="text-xs text-blue-600">{source.name}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => window.open(source.url, '_blank', 'noopener,noreferrer')}
+                    className="h-6 px-2 text-xs text-blue-600 hover:text-blue-800"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                  </Button>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
