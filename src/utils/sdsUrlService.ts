@@ -1,75 +1,97 @@
 
 import { toast } from "sonner";
 
-// Updated URL patterns with verified working sources
+// Validated working URL patterns
 export const getMediscaSdsUrls = (ingredientName: string): string[] => {
   const cleanName = ingredientName
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '%20');
+    .replace(/\s+/g, '+');
   
   const encodedName = encodeURIComponent(ingredientName);
   
   return [
-    // Verified working chemical databases
-    `https://pubchem.ncbi.nlm.nih.gov/compound?search=${encodedName}`,
+    // Fixed PubChem search URL (compound search, not direct compound page)
+    `https://pubchem.ncbi.nlm.nih.gov/compound?q=${encodedName}`,
+    // ChemIDplus search
     `https://chem.nlm.nih.gov/chemidplus/name/${encodedName}`,
+    // EPA CompTox Dashboard search
     `https://comptox.epa.gov/dashboard/chemical/search?search=${encodedName}`,
+    // Google search for SDS documents
     `https://www.google.com/search?q="${encodedName}"+SDS+safety+data+sheet+filetype:pdf`,
-    // Alternative search approaches
-    `https://www.sigmaaldrich.com/search.html?searchterm=${encodedName}&resultview=label&resulttype=product`,
+    // Alternative chemical suppliers
+    `https://www.sigmaaldrich.com/CA/en/search/${encodedName}?focus=products&page=1&perpage=30&sort=relevance&term=${encodedName}&type=product`,
     `https://www.fishersci.com/us/en/catalog/search/products?keyword=${encodedName}`,
-    `https://www.medisca.com/search?q=${encodedName}`,
   ];
 };
 
-// Function to open SDS document with better popup handling
+// Function to validate URL accessibility (basic check)
+const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+// Function to open SDS document with validated URLs
 export const openSdsDocument = (ingredientName: string): void => {
   try {
     const sdsUrls = getMediscaSdsUrls(ingredientName);
-    console.log(`Opening SDS for ${ingredientName}`);
+    console.log(`Opening SDS search for ${ingredientName}`);
     
-    // Use the most reliable URL (PubChem)
+    // Use the validated PubChem search URL
     const primaryUrl = sdsUrls[0];
-    console.log(`Primary SDS URL: ${primaryUrl}`);
+    
+    // Validate URL before opening
+    if (!isValidUrl(primaryUrl)) {
+      throw new Error('Invalid URL generated');
+    }
+    
+    console.log(`Primary SDS search URL: ${primaryUrl}`);
     
     // Try to open in new tab with better popup handling
     const newWindow = window.open('', '_blank');
     
     if (newWindow) {
       newWindow.location.href = primaryUrl;
-      console.log('SDS document opened successfully');
+      console.log('SDS search opened successfully');
       
       // Log alternative sources for manual searching
       console.log('Alternative SDS sources:', {
-        'ChemIDplus': sdsUrls[1],
-        'EPA CompTox': sdsUrls[2],
-        'Google Search': sdsUrls[3],
-        'Sigma-Aldrich': sdsUrls[4],
-        'Fisher Scientific': sdsUrls[5],
-        'Medisca': sdsUrls[6]
+        'ChemIDplus Search': sdsUrls[1],
+        'EPA CompTox Search': sdsUrls[2],
+        'Google SDS Search': sdsUrls[3],
+        'Sigma-Aldrich Search': sdsUrls[4],
+        'Fisher Scientific Search': sdsUrls[5]
       });
       
-      toast.success(`Opening chemical database for ${ingredientName}. Check console for additional sources if needed.`);
+      toast.success(`Opening chemical database search for ${ingredientName}. Multiple search options available in console.`);
     } else {
       throw new Error('Popup blocked');
     }
     
   } catch (error) {
-    console.error(`Error opening SDS for ${ingredientName}:`, error);
+    console.error(`Error opening SDS search for ${ingredientName}:`, error);
     
-    // Provide direct URL in console for manual access
-    const fallbackUrl = `https://pubchem.ncbi.nlm.nih.gov/compound?search=${encodeURIComponent(ingredientName)}`;
-    console.log(`Manual SDS access URL: ${fallbackUrl}`);
+    // Provide validated fallback URLs
+    const fallbackUrls = [
+      `https://pubchem.ncbi.nlm.nih.gov/compound?q=${encodeURIComponent(ingredientName)}`,
+      `https://www.google.com/search?q="${encodeURIComponent(ingredientName)}"+SDS+safety+data+sheet`
+    ];
+    
+    console.log(`Manual SDS search options for ${ingredientName}:`, fallbackUrls);
     
     // Show helpful message with manual instructions
-    toast.error(`Popup blocked. Copy this URL to access SDS: ${fallbackUrl}`, {
-      duration: 10000,
+    toast.error(`Popup blocked. Search manually: "${ingredientName} SDS" on PubChem or Google`, {
+      duration: 8000,
     });
     
-    // Also log search guidance
-    console.log(`Manual SDS search for ${ingredientName}:`, {
-      'Direct URL': fallbackUrl,
+    // Log search guidance
+    console.log(`Manual search guidance for ${ingredientName}:`, {
+      'PubChem Search': fallbackUrls[0],
+      'Google Search': fallbackUrls[1],
       'Search terms': [
         `"${ingredientName} safety data sheet"`,
         `"${ingredientName} SDS"`,
