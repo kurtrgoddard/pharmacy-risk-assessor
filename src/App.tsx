@@ -8,6 +8,7 @@ import ErrorBoundary from '@/components/ErrorBoundary';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import NAPRARiskAssessment from './pages/NAPRARiskAssessment';
+import Dashboard from './pages/Dashboard';
 import './App.css';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/napra-assessment" element={<NAPRARiskAssessment />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
