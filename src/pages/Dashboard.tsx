@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useToast } from '@/components/ui/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useSession } from '@/hooks/useSession';
 import AppHeader from '@/components/ui/AppHeader';
 import AppFooter from '@/components/ui/AppFooter';

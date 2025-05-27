@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { CheckCircle2, AlertTriangle, HelpCircle } from 'lucide-react';
-import { toast } from '@/components/ui/sonner';
+import { toast } from 'sonner';
 import {
   Form,
   FormControl,
@@ -78,26 +79,20 @@ const NAPRARiskAssessment = () => {
     try {
       const success = await submitRiskAssessment(values);
       if (success) {
-        toast({
-          title: "Assessment submitted!",
+        toast.success("Assessment submitted!", {
           description: "You'll be redirected to the dashboard.",
-          action: <a href="/dashboard">View Dashboard</a>,
         });
         setTimeout(() => {
           navigate('/dashboard');
         }, 2000);
       } else {
-        toast({
-          title: "Failed to submit assessment.",
+        toast.error("Failed to submit assessment.", {
           description: "Please try again or contact support.",
-          variant: "destructive"
         });
       }
     } catch (error) {
-      toast({
-        title: "Submission error",
+      toast.error("Submission error", {
         description: "Something went wrong. Please try again.",
-        variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
@@ -112,6 +107,7 @@ const NAPRARiskAssessment = () => {
         <MobileFormWrapper className="py-8">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
