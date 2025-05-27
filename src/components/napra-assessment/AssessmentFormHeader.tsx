@@ -1,18 +1,5 @@
 
 import React from 'react';
-
-interface AssessmentFormHeaderProps {
-  pharmacyName: string;
-  assessorName: string;
-  assessmentDate: Date;
-  preparationName: string;
-  onPharmacyNameChange: (value: string) => void;
-  onAssessorNameChange: (value: string) => void;
-  onAssessmentDateChange: (value: Date) => void;
-  onPreparationNameChange: (value: string) => void;
-  control: any;
-}
-
 import {
   FormControl,
   FormField,
@@ -21,6 +8,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+
+interface AssessmentFormHeaderProps {
+  control: any;
+}
 
 const AssessmentFormHeader: React.FC<AssessmentFormHeaderProps> = ({
   control
