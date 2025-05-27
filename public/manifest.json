@@ -1,8 +1,8 @@
 
 {
-  "name": "Pharmacy Risk Assessor",
-  "short_name": "RiskAssessor",
-  "description": "NAPRA-compliant pharmaceutical risk assessment tool",
+  "name": "Pharmacy Risk Assessor - Professional NAPRA Compliance Tool",
+  "short_name": "Pharmacy Risk Assessor",
+  "description": "Professional pharmaceutical risk assessment tool for NAPRA compliance with automated data integration and comprehensive reporting",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -22,8 +22,15 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["medical", "productivity", "utilities"],
+  "categories": ["medical", "productivity", "utilities", "business"],
   "lang": "en-US",
   "scope": "/",
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "screenshots": [
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
 }
