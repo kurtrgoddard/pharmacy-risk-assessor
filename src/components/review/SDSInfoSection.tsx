@@ -125,14 +125,8 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     if (onViewSds) {
       onViewSds();
     } else {
-      // Use the updated function to open SDS in a new tab
-      try {
-        openSdsDocument(ingredientName);
-        console.log(`Opening SDS for ${ingredientName}`);
-      } catch (error) {
-        console.error(`Error opening SDS for ${ingredientName}:`, error);
-        toast.error("Could not retrieve SDS at this time. Please try again later.");
-      }
+      // Show informative toast instead of broken link
+      toast.info("SDS documents are available through your supplier or by searching the ingredient name on chemical safety databases like PubChem or manufacturer websites.");
     }
   };
   
@@ -204,14 +198,27 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
             }}
             className="text-xs"
           >
-            <FileDown className="w-3 h-3 mr-1" />
-            View SDS
+            <Info className="w-3 h-3 mr-1" />
+            SDS Info
           </Button>
         </div>
       </div>
 
       {expanded && (
         <div className="p-4 border-t bg-white">
+          <div className="mb-3 px-4 py-2 bg-blue-50 rounded-md text-sm border border-blue-200">
+            <div className="flex items-start space-x-2">
+              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <span className="font-medium text-blue-800">SDS Document Access:</span>
+                <p className="text-blue-700 text-xs mt-1">
+                  Complete Safety Data Sheets are available through your ingredient supplier, 
+                  manufacturer websites, or chemical safety databases like PubChem.
+                </p>
+              </div>
+            </div>
+          </div>
+          
           <Accordion type="single" collapsible className="w-full">
             {sdsData.physicalForm && (
               <div className="mb-3 px-4 py-2 bg-gray-50 rounded-md text-sm">
