@@ -73,7 +73,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     } else {
       try {
         openSdsDocument(ingredientName);
-        console.log(`Opening SDS for ${ingredientName} with multiple URL fallbacks`);
+        console.log(`Opening reliable chemical database for ${ingredientName}`);
       } catch (error) {
         console.error(`Error opening SDS for ${ingredientName}:`, error);
       }
@@ -138,9 +138,10 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
               handleViewSds();
             }}
             className="text-xs"
+            title="Opens reliable chemical databases (PubChem, EPA, etc.) for SDS information"
           >
             <FileDown className="w-3 h-3 mr-1" />
-            View SDS
+            Find SDS
           </Button>
         </div>
       </div>
