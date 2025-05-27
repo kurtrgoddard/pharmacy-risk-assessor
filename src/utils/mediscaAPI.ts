@@ -1,3 +1,4 @@
+
 /**
  * Medisca API Utilities
  * Provides functions for retrieving and parsing Safety Data Sheets (SDS)
@@ -37,25 +38,81 @@ export const clearSdsCache = (): void => {
   console.log("SDS cache cleared");
 };
 
-// Normalized SDS URL for Medisca
-export const getMediscaSdsUrl = (ingredientName: string): string => {
-  // Clean the ingredient name for URL use and ensure consistent casing
+// Multiple URL patterns to try for Medisca SDS
+export const getMediscaSdsUrls = (ingredientName: string): string[] => {
   const cleanName = ingredientName
     .toLowerCase()
     .trim()
     .replace(/\s+/g, '-')
     .replace(/[^a-z0-9-]/g, '');
   
-  // Updated Medisca Public SDS URL format - using their direct SDS search path
-  return `https://www.medisca.com/Pages/SdsSearch?product=${encodeURIComponent(ingredientName)}`;
+  const encodedName = encodeURIComponent(ingredientName);
+  const encodedCleanName = encodeURIComponent(cleanName);
+  
+  // Try multiple URL patterns that Medisca might use
+  return [
+    // Current search page
+    `https://www.medisca.com/Pages/SdsSearch?product=${encodedName}`,
+    // Direct SDS path variations
+    `https://www.medisca.com/sds/${encodedCleanName}.pdf`,
+    `https://www.medisca.com/documents/sds/${encodedCleanName}.pdf`,
+    `https://www.medisca.com/safety-data-sheets/${encodedCleanName}`,
+    // Product-based SDS
+    `https://www.medisca.com/product/${encodedCleanName}/sds`,
+    `https://www.medisca.com/products/${encodedCleanName}/safety-data-sheet`,
+    // Alternative search formats
+    `https://www.medisca.com/search?q=${encodedName}&type=sds`,
+    `https://www.medisca.com/Pages/Search?query=${encodedName}&filter=sds`,
+    // Generic fallback to main SDS page
+    `https://www.medisca.com/safety-data-sheets`,
+    // PubChem as reliable fallback
+    `https://pubchem.ncbi.nlm.nih.gov/compound/${encodedName}`,
+    // ChemSpider as another fallback
+    `http://www.chemspider.com/Search.aspx?q=${encodedName}`,
+  ];
 };
 
-// Function to open SDS document in new tab
+// Test if a URL is accessible (client-side limitation workaround)
+const testSdsUrl = async (url: string): Promise<boolean> => {
+  try {
+    // We can't actually test URLs from client-side due to CORS
+    // But we can implement a smart priority system
+    console.log(`Would test URL: ${url}`);
+    return true; // For now, assume URLs might work
+  } catch (error) {
+    console.error(`URL test failed for ${url}:`, error);
+    return false;
+  }
+};
+
+// Function to open SDS document with fallback URLs
 export const openSdsDocument = (ingredientName: string): void => {
   try {
-    const sdsUrl = getMediscaSdsUrl(ingredientName);
-    console.log(`Opening SDS URL: ${sdsUrl}`);
-    window.open(sdsUrl, '_blank', 'noopener,noreferrer');
+    const sdsUrls = getMediscaSdsUrls(ingredientName);
+    console.log(`Attempting to open SDS for ${ingredientName} with ${sdsUrls.length} URL options`);
+    
+    // Try the first URL (most likely to work)
+    const primaryUrl = sdsUrls[0];
+    console.log(`Opening primary SDS URL: ${primaryUrl}`);
+    
+    // Open in new tab with specific window features to help with error detection
+    const newWindow = window.open(primaryUrl, '_blank', 'noopener,noreferrer,width=1200,height=800');
+    
+    if (!newWindow) {
+      throw new Error('Popup blocked or failed to open');
+    }
+    
+    // Provide user with alternative options in console for manual fallback
+    console.log('Alternative SDS sources if primary fails:', {
+      'Medisca alternatives': sdsUrls.slice(1, 5),
+      'External databases': sdsUrls.slice(-3),
+      'Manual search suggestions': [
+        `Search "${ingredientName}" on pubchem.ncbi.nlm.nih.gov`,
+        `Search "${ingredientName} SDS" on Google`,
+        `Contact your supplier for SDS documents`
+      ]
+    });
+    
   } catch (error) {
     console.error(`Error opening SDS for ${ingredientName}:`, error);
     throw new Error(`Could not open SDS for ${ingredientName}`);
@@ -109,7 +166,7 @@ export class MediscaSDSService {
         ingestion: 'Do not induce vomiting. Seek immediate medical attention.'
       },
       fireHazard: this.determineFireHazard(hazardData),
-      sdsUrl: `https://medisca.com/sds/${encodeURIComponent(hazardData.ingredientName)}`
+      sdsUrl: getMediscaSdsUrls(hazardData.ingredientName)[0]
     };
   }
 
@@ -163,7 +220,7 @@ export class MediscaSDSService {
         ingestion: 'Do not induce vomiting. Seek immediate medical attention.'
       },
       fireHazard: 'No special fire hazards',
-      sdsUrl: getMediscaSdsUrl(ingredientName)
+      sdsUrl: getMediscaSdsUrls(ingredientName)[0]
     };
   }
 
@@ -179,7 +236,7 @@ export class MediscaSDSService {
           productName: realData.ingredientName,
           casNumber: realData.casNumber || 'N/A',
           manufacturer: 'Various',
-          sdsUrl: `https://medisca.com/sds/${encodeURIComponent(realData.ingredientName)}`,
+          sdsUrl: getMediscaSdsUrls(realData.ingredientName)[0],
           lastUpdated: realData.dataQuality.lastUpdated.toISOString().split('T')[0]
         }];
       }
@@ -198,7 +255,7 @@ export class MediscaSDSService {
         productName: query,
         casNumber: '123-45-6',
         manufacturer: 'Medisca',
-        sdsUrl: getMediscaSdsUrl(query),
+        sdsUrl: getMediscaSdsUrls(query)[0],
         lastUpdated: new Date().toISOString().split('T')[0]
       }
     ];
