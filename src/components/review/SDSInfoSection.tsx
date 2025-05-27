@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from "react";
-import { AlertTriangle, Info, Shield, ShieldAlert, ShieldCheck, FileDown, FileText } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Info, FileDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { SDSData, openSdsDocument } from "@/utils/mediscaAPI";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { SDSData } from "@/utils/mediscaAPI";
 import { Skeleton } from "@/components/ui/skeleton";
-import { toast } from "sonner";
+import { openSdsDocument } from "@/utils/sdsUrlService";
+import { SDSBadges } from "./sds/SDSBadges";
+import { SDSContent } from "./sds/SDSContent";
 
 interface SDSInfoSectionProps {
   ingredientName: string;
@@ -42,20 +42,9 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     return !(nonHazardousGhs && nonHazardousWhmis);
   };
   
-  const isHighHazard = (data: SDSData): boolean => {
-    if (!data) return false;
-    
-    return data.hazardClassification.ghs.some(h => 
-      h.toLowerCase().includes("carcinogen") || 
-      h.toLowerCase().includes("mutagen") ||
-      h.toLowerCase().includes("reproductive")
-    );
-  };
-  
   const isPowderHazard = (data: SDSData): boolean => {
     if (!data) return false;
     
-    // Check if the SDS mentions powder form and has any hazard
     return (data.physicalForm?.toLowerCase().includes("powder") || 
            data.physicalForm?.toLowerCase().includes("dust") ||
            data.physicalForm?.toLowerCase().includes("solid") ||
@@ -64,7 +53,6 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
   };
   
   const isNarcotic = (name: string): boolean => {
-    // Fix: Remove baclofen from the list of narcotics
     const narcoticKeywords = [
       "ketamine", "codeine", "morphine", "fentanyl", 
       "hydrocodone", "oxycodone", "hydromorphone", "methadone",
@@ -72,7 +60,6 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
       "lorazepam", "alprazolam", "clonazepam", "midazolam"
     ];
     
-    // Explicitly exclude baclofen and other non-narcotics that might contain substring matches
     if (name.toLowerCase() === "baclofen") return false;
     
     return narcoticKeywords.some(keyword => 
@@ -80,59 +67,15 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
     );
   };
   
-  const getHazardBadge = (data: SDSData) => {
-    if (!data) return null;
-    
-    if (isHighHazard(data)) {
-      return (
-        <Badge className="bg-red-100 text-red-800 border-red-200">
-          <ShieldAlert className="w-3 h-3 mr-1" />
-          High Hazard
-        </Badge>
-      );
-    }
-    
-    if (!isHazardous(data)) {
-      return (
-        <Badge className="bg-green-100 text-green-800 border-green-200">
-          <ShieldCheck className="w-3 h-3 mr-1" />
-          Non-Hazardous
-        </Badge>
-      );
-    }
-    
-    return (
-      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-        <Shield className="w-3 h-3 mr-1" />
-        Moderate Hazard
-      </Badge>
-    );
-  };
-  
-  const getNarcoticBadge = (name: string) => {
-    if (isNarcotic(name)) {
-      return (
-        <Badge className="ml-2 bg-purple-100 text-purple-800 border-purple-200">
-          <AlertTriangle className="w-3 h-3 mr-1" />
-          Narcotic/Controlled
-        </Badge>
-      );
-    }
-    return null;
-  };
-  
   const handleViewSds = () => {
     if (onViewSds) {
       onViewSds();
     } else {
-      // Use the improved openSdsDocument function with multiple URL fallbacks
       try {
         openSdsDocument(ingredientName);
         console.log(`Opening SDS for ${ingredientName} with multiple URL fallbacks`);
-        toast.success("Opening SDS document. If the page doesn't load, check console for alternative sources.");
       } catch (error) {
         console.error(`Error opening SDS for ${ingredientName}:`, error);
-        toast.error("Could not retrieve SDS at this time. Check console for alternative search suggestions.");
       }
     }
   };
@@ -159,7 +102,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
           <div className="flex items-center text-sm text-gray-600">
             <Info className="w-4 h-4 mr-2 text-blue-500" />
             <span>SDS information currently unavailable for {ingredientName}</span>
-            {isNarcotic(ingredientName) && getNarcoticBadge(ingredientName)}
+            <SDSBadges sdsData={null} ingredientName={ingredientName} />
           </div>
           <Button
             variant="ghost"
@@ -185,16 +128,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
           <div className="flex items-center">
             <FileText className={`w-4 h-4 mr-2 ${isPowderHazard(sdsData) ? 'text-orange-600' : isHazardous(sdsData) ? 'text-yellow-600' : 'text-green-600'}`} />
             <span className="font-medium text-sm">Safety Data Information</span>
-            {getHazardBadge(sdsData)}
-            
-            {isPowderHazard(sdsData) && (
-              <Badge className="ml-2 bg-orange-100 text-orange-800 border-orange-200">
-                <AlertTriangle className="w-3 h-3 mr-1" />
-                Powder Hazard
-              </Badge>
-            )}
-            
-            {isNarcotic(ingredientName) && getNarcoticBadge(ingredientName)}
+            <SDSBadges sdsData={sdsData} ingredientName={ingredientName} />
           </div>
           <Button
             variant="ghost"
@@ -211,106 +145,7 @@ const SDSInfoSection: React.FC<SDSInfoSectionProps> = ({
         </div>
       </div>
 
-      {expanded && (
-        <div className="p-4 border-t bg-white">
-          <div className="mb-3 px-4 py-2 bg-blue-50 rounded-md text-sm border border-blue-200">
-            <div className="flex items-start space-x-2">
-              <Info className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div>
-                <span className="font-medium text-blue-800">SDS Document Access:</span>
-                <p className="text-blue-700 text-xs mt-1">
-                  Clicking "View SDS" attempts multiple Medisca URL formats. If unsuccessful, 
-                  check browser console for alternative sources including PubChem and ChemSpider.
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <Accordion type="single" collapsible className="w-full">
-            {sdsData.physicalForm && (
-              <div className="mb-3 px-4 py-2 bg-gray-50 rounded-md text-sm">
-                <span className="font-medium">Physical Form:</span> {sdsData.physicalForm}
-                {isPowderHazard(sdsData) && (
-                  <div className="mt-1 text-orange-700 text-xs font-medium">
-                    ⚠️ Powder form requires additional precautions including powder containment hood and proper ventilation
-                  </div>
-                )}
-                {isNarcotic(ingredientName) && (
-                  <div className="mt-1 text-purple-700 text-xs font-medium">
-                    ⚠️ Narcotic/controlled substance requiring special handling and security measures
-                  </div>
-                )}
-              </div>
-            )}
-            
-            <AccordionItem value="hazards">
-              <AccordionTrigger className="text-sm font-medium">
-                Hazard Classification
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2 pl-4 text-sm">
-                  <div>
-                    <h4 className="font-medium text-xs uppercase text-gray-500 mb-1">GHS Classification</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {sdsData.hazardClassification.ghs.map((hazard, index) => (
-                        <li key={index} className="text-gray-700">{hazard}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-xs uppercase text-gray-500 mb-1">WHMIS Classification</h4>
-                    <ul className="list-disc list-inside space-y-1">
-                      {sdsData.hazardClassification.whmis.map((hazard, index) => (
-                        <li key={index} className="text-gray-700">{hazard}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="ppe">
-              <AccordionTrigger className="text-sm font-medium">
-                Recommended PPE
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-2 pl-4 text-sm">
-                  <p><span className="font-medium">Gloves:</span> {sdsData.recommendedPPE.gloves}</p>
-                  <p><span className="font-medium">Respiratory:</span> {sdsData.recommendedPPE.respiratoryProtection}</p>
-                  <p><span className="font-medium">Eye Protection:</span> {sdsData.recommendedPPE.eyeProtection}</p>
-                  <p><span className="font-medium">Body Protection:</span> {sdsData.recommendedPPE.bodyProtection}</p>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="risks">
-              <AccordionTrigger className="text-sm font-medium">
-                Exposure Risks
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="list-disc list-inside space-y-1 pl-4 text-sm">
-                  {sdsData.exposureRisks.map((risk, index) => (
-                    <li key={index} className="text-gray-700">{risk}</li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-            
-            <AccordionItem value="precautions">
-              <AccordionTrigger className="text-sm font-medium">
-                Handling Precautions
-              </AccordionTrigger>
-              <AccordionContent>
-                <ul className="list-disc list-inside space-y-1 pl-4 text-sm">
-                  {sdsData.handlingPrecautions.map((precaution, index) => (
-                    <li key={index} className="text-gray-700">{precaution}</li>
-                  ))}
-                </ul>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      )}
+      {expanded && <SDSContent sdsData={sdsData} ingredientName={ingredientName} />}
     </div>
   );
 };
