@@ -1,89 +1,80 @@
 
 import { toast } from "sonner";
 
-// Updated URL patterns with more reliable external sources first
+// Updated URL patterns with verified working sources
 export const getMediscaSdsUrls = (ingredientName: string): string[] => {
   const cleanName = ingredientName
     .toLowerCase()
     .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]/g, '');
+    .replace(/\s+/g, '%20');
   
   const encodedName = encodeURIComponent(ingredientName);
-  const encodedCleanName = encodeURIComponent(cleanName);
   
   return [
-    // Start with more reliable external databases
-    `https://pubchem.ncbi.nlm.nih.gov/compound/${encodedName}`,
-    `https://www.ncbi.nlm.nih.gov/pccompound?term=${encodedName}`,
-    `https://comptox.epa.gov/dashboard/chemical/search/${encodedName}`,
-    `http://www.chemspider.com/Search.aspx?q=${encodedName}`,
+    // Verified working chemical databases
+    `https://pubchem.ncbi.nlm.nih.gov/compound?search=${encodedName}`,
     `https://chem.nlm.nih.gov/chemidplus/name/${encodedName}`,
-    // Try Medisca with different approaches
-    `https://www.medisca.com/safety-data-sheets`,
-    `https://www.medisca.com/search?q=${encodedName}`,
-    `https://www.medisca.com/Pages/Search?query=${encodedName}`,
-    // Generic SDS search engines
+    `https://comptox.epa.gov/dashboard/chemical/search?search=${encodedName}`,
     `https://www.google.com/search?q="${encodedName}"+SDS+safety+data+sheet+filetype:pdf`,
-    `https://www.fishersci.com/us/en/catalog/search/sdshome.html?search=${encodedName}`,
-    `https://www.sigmaaldrich.com/safety-center.html?searchterm=${encodedName}`
+    // Alternative search approaches
+    `https://www.sigmaaldrich.com/search.html?searchterm=${encodedName}&resultview=label&resulttype=product`,
+    `https://www.fishersci.com/us/en/catalog/search/products?keyword=${encodedName}`,
+    `https://www.medisca.com/search?q=${encodedName}`,
   ];
 };
 
-// Function to open SDS document with improved fallback strategy
+// Function to open SDS document with better popup handling
 export const openSdsDocument = (ingredientName: string): void => {
   try {
     const sdsUrls = getMediscaSdsUrls(ingredientName);
-    console.log(`Opening SDS for ${ingredientName} with ${sdsUrls.length} URL options`);
+    console.log(`Opening SDS for ${ingredientName}`);
     
-    // Start with PubChem as it's most reliable
+    // Use the most reliable URL (PubChem)
     const primaryUrl = sdsUrls[0];
-    console.log(`Opening primary SDS URL (PubChem): ${primaryUrl}`);
+    console.log(`Primary SDS URL: ${primaryUrl}`);
     
-    const newWindow = window.open(primaryUrl, '_blank', 'noopener,noreferrer,width=1200,height=800');
+    // Try to open in new tab with better popup handling
+    const newWindow = window.open('', '_blank');
     
-    if (!newWindow) {
-      throw new Error('Popup blocked or failed to open');
+    if (newWindow) {
+      newWindow.location.href = primaryUrl;
+      console.log('SDS document opened successfully');
+      
+      // Log alternative sources for manual searching
+      console.log('Alternative SDS sources:', {
+        'ChemIDplus': sdsUrls[1],
+        'EPA CompTox': sdsUrls[2],
+        'Google Search': sdsUrls[3],
+        'Sigma-Aldrich': sdsUrls[4],
+        'Fisher Scientific': sdsUrls[5],
+        'Medisca': sdsUrls[6]
+      });
+      
+      toast.success(`Opening chemical database for ${ingredientName}. Check console for additional sources if needed.`);
+    } else {
+      throw new Error('Popup blocked');
     }
-    
-    console.log('Alternative SDS sources available:', {
-      'Chemical databases': sdsUrls.slice(1, 5),
-      'Medisca alternatives': sdsUrls.slice(5, 8),
-      'Search engines': sdsUrls.slice(8),
-      'Manual search tips': [
-        `Search "${ingredientName} SDS" on Google`,
-        `Check manufacturer websites directly`,
-        `Contact your chemical supplier`,
-        `Search chemical databases like NIOSH, EPA, or OSHA`
-      ]
-    });
-    
-    toast.success(`Opening chemical database for ${ingredientName}. Check console for additional sources if needed.`);
     
   } catch (error) {
     console.error(`Error opening SDS for ${ingredientName}:`, error);
     
-    // Provide helpful manual search guidance
-    console.log(`Manual SDS search guidance for ${ingredientName}:`, {
-      'Recommended searches': [
+    // Provide direct URL in console for manual access
+    const fallbackUrl = `https://pubchem.ncbi.nlm.nih.gov/compound?search=${encodeURIComponent(ingredientName)}`;
+    console.log(`Manual SDS access URL: ${fallbackUrl}`);
+    
+    // Show helpful message with manual instructions
+    toast.error(`Popup blocked. Copy this URL to access SDS: ${fallbackUrl}`, {
+      duration: 10000,
+    });
+    
+    // Also log search guidance
+    console.log(`Manual SDS search for ${ingredientName}:`, {
+      'Direct URL': fallbackUrl,
+      'Search terms': [
         `"${ingredientName} safety data sheet"`,
         `"${ingredientName} SDS"`,
         `"${ingredientName} MSDS"`
-      ],
-      'Reliable databases': [
-        'PubChem (https://pubchem.ncbi.nlm.nih.gov/)',
-        'ChemIDplus (https://chem.nlm.nih.gov/chemidplus/)',
-        'EPA CompTox (https://comptox.epa.gov/dashboard/)',
-        'NIOSH Pocket Guide (https://www.cdc.gov/niosh/npg/)'
-      ],
-      'Supplier websites': [
-        'Sigma-Aldrich',
-        'Fisher Scientific',
-        'Your specific ingredient supplier'
       ]
     });
-    
-    toast.error("SDS lookup temporarily unavailable. Check console for manual search options and reliable chemical databases.");
-    throw new Error(`Could not open SDS for ${ingredientName}`);
   }
 };
