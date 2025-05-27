@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { FileUploader, LoadingIndicator } from '@/components';
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft, Info, Play } from "lucide-react";
 import KeswickDataReview from '@/components/KeswickDataReview';
 import KeswickRiskAssessment, { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
+import DemoMode from '@/components/DemoMode';
 import { getSdsData, clearSdsCache, isPowderFormIngredient, isCreamOrOintment } from '@/utils/mediscaAPI';
 
 // This would be replaced with actual PDF processing in production
@@ -455,6 +456,7 @@ const Index = () => {
   ]);
   const [currentStep, setCurrentStep] = useState(0);
   const [isDataValidated, setIsDataValidated] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
 
   // Simulates different loading messages during processing
   useEffect(() => {
@@ -556,6 +558,26 @@ const Index = () => {
     toast.success("Final risk assessment generated successfully");
   };
 
+  const handleEnterDemoMode = () => {
+    setIsDemoMode(true);
+    toast.success("Entering demo mode - explore pre-filled examples");
+  };
+
+  const handleExitDemoMode = () => {
+    setIsDemoMode(false);
+    // Reset all state when exiting demo
+    setFile(null);
+    setAssessmentPDF(null);
+    setAssessmentGenerated(false);
+    setExtractedData(null);
+    setIsDataValidated(false);
+    clearSdsCache();
+  };
+
+  if (isDemoMode) {
+    return <DemoMode onExitDemo={handleExitDemoMode} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-white to-pharmacy-neutral p-4">
       <div className="w-full max-w-6xl">
@@ -576,13 +598,26 @@ const Index = () => {
               <>
                 <FileUploader onFileUploaded={handleFileUploaded} />
                 
-                <div className="mt-8 flex justify-center">
+                <div className="mt-8 flex flex-col items-center gap-4">
                   <Button 
                     onClick={handleGenerateDocuments}
                     disabled={!file}
                     className="bg-pharmacy-blue hover:bg-pharmacy-darkBlue transition-colors duration-200 px-8"
                   >
                     Generate Risk Assessment
+                  </Button>
+                  
+                  <div className="flex items-center gap-2 text-pharmacy-gray text-sm">
+                    <span>or</span>
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={handleEnterDemoMode}
+                    className="text-pharmacy-blue border-pharmacy-blue hover:bg-pharmacy-blue hover:text-white transition-colors duration-200 px-6"
+                  >
+                    <Play className="w-4 h-4 mr-2" />
+                    Try Demo
                   </Button>
                 </div>
                 
