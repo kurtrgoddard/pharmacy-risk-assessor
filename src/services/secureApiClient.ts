@@ -1,4 +1,3 @@
-
 import { errorHandler, rateLimiter } from '@/utils/errorHandling';
 import { sanitizeObject } from '@/utils/inputValidation';
 
@@ -6,6 +5,13 @@ interface ApiOptions {
   timeout?: number;
   retries?: number;
   requireAuth?: boolean;
+}
+
+interface ApiError extends Error {
+  code?: string;
+  statusCode?: number;
+  isNetworkError?: boolean;
+  isTimeout?: boolean;
 }
 
 class SecureApiClient {
@@ -20,10 +26,9 @@ class SecureApiClient {
     
     // Check rate limiting
     if (rateLimiter.isRateLimited(identifier)) {
-      errorHandler.handleError(
-        new Error('Rate limit exceeded'), 
-        'network'
-      );
+      const error = new Error('Too many requests. Please wait before trying again.') as ApiError;
+      error.code = 'RATE_LIMITED';
+      errorHandler.handleError(error, 'network');
     }
 
     const {
@@ -35,10 +40,9 @@ class SecureApiClient {
 
     // Validate URL to prevent SSRF attacks
     if (!this.isValidUrl(url)) {
-      errorHandler.handleError(
-        new Error('Invalid URL'), 
-        'validation'
-      );
+      const error = new Error('Invalid URL provided') as ApiError;
+      error.code = 'INVALID_URL';
+      errorHandler.handleError(error, 'validation');
     }
 
     // Sanitize request body if present
@@ -48,11 +52,13 @@ class SecureApiClient {
         const sanitized = sanitizeObject(parsed);
         fetchOptions.body = JSON.stringify(sanitized);
       } catch (error) {
-        errorHandler.handleError(error, 'validation');
+        const validationError = new Error('Invalid request data format') as ApiError;
+        validationError.code = 'INVALID_REQUEST_FORMAT';
+        errorHandler.handleError(validationError, 'validation');
       }
     }
 
-    let lastError: any;
+    let lastError: ApiError;
     
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
@@ -71,23 +77,29 @@ class SecureApiClient {
         clearTimeout(timeoutId);
 
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const error = new Error(this.getHttpErrorMessage(response.status)) as ApiError;
+          error.statusCode = response.status;
+          error.code = `HTTP_${response.status}`;
+          throw error;
         }
 
         const data = await response.json();
         return this.sanitizeResponse(data);
         
       } catch (error: any) {
-        lastError = error;
+        lastError = this.enhanceError(error);
         
         if (error.name === 'AbortError') {
-          errorHandler.logError(error, 'network_timeout');
+          lastError.isTimeout = true;
+          lastError.code = 'TIMEOUT';
+          lastError.message = 'Request timed out. Please check your connection and try again.';
+          errorHandler.logError(lastError, 'network_timeout');
         } else {
-          errorHandler.logError(error, 'network_request');
+          errorHandler.logError(lastError, 'network_request');
         }
         
         // Don't retry on certain errors
-        if (error.name === 'AbortError' || error.message?.includes('HTTP 401')) {
+        if (error.name === 'AbortError' || error.message?.includes('HTTP 401') || error.message?.includes('HTTP 403')) {
           break;
         }
         
@@ -99,6 +111,43 @@ class SecureApiClient {
     }
 
     errorHandler.handleError(lastError, 'network');
+  }
+
+  private enhanceError(error: any): ApiError {
+    const enhancedError = error as ApiError;
+    
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      enhancedError.isNetworkError = true;
+      enhancedError.code = 'NETWORK_ERROR';
+      enhancedError.message = 'Unable to connect to the service. Please check your internet connection.';
+    }
+    
+    return enhancedError;
+  }
+
+  private getHttpErrorMessage(status: number): string {
+    switch (status) {
+      case 400:
+        return 'Invalid request. Please check your input and try again.';
+      case 401:
+        return 'Authentication required. Please log in and try again.';
+      case 403:
+        return 'Access denied. You do not have permission to perform this action.';
+      case 404:
+        return 'The requested resource could not be found.';
+      case 408:
+        return 'Request timeout. Please try again.';
+      case 429:
+        return 'Too many requests. Please wait before trying again.';
+      case 500:
+        return 'Server error. Please try again later.';
+      case 502:
+      case 503:
+      case 504:
+        return 'Service temporarily unavailable. Please try again later.';
+      default:
+        return `Request failed with status ${status}. Please try again.`;
+    }
   }
 
   private getRequestIdentifier(): string {
