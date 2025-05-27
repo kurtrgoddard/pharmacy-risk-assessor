@@ -5,6 +5,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { useNotifications } from '@/hooks/useNotifications';
 import { monitorNetworkConnectivity } from '@/utils/errorHandling';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import OfflineNotification from '@/components/ui/OfflineNotification';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import NAPRARiskAssessment from './pages/NAPRARiskAssessment';
@@ -25,6 +26,7 @@ function App() {
 
   return (
     <ErrorBoundary>
+      <OfflineNotification />
       <Router>
         <Routes>
           <Route path="/" element={<Index />} />

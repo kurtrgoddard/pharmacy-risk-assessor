@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/accordion";
 import { Check } from "lucide-react";
 import { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
+import MobileFormWrapper from '@/components/ui/MobileFormWrapper';
 
 // Import refactored components
 import CompoundInfoSection from "./napra-form/CompoundInfoSection";
@@ -115,59 +116,72 @@ const NAPRARiskAssessmentForm: React.FC<NAPRARiskAssessmentFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Card className="w-full max-w-4xl mx-auto">
-        <CardHeader>
-          <CardTitle>NAPRA Risk Assessment Form</CardTitle>
-          <CardDescription>
-            Fill out the form to assess the risk level and recommended controls
-            for compounding.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Accordion type="single" collapsible>
-            <CompoundInfoSection 
-              compoundName={assessment.compoundName}
-              din={assessment.din}
-              onValueChange={handleChange}
-            />
+    <MobileFormWrapper>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <Card className="w-full">
+          <CardHeader className="pb-4 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">NAPRA Risk Assessment Form</CardTitle>
+            <CardDescription className="text-sm sm:text-base">
+              Fill out the form to assess the risk level and recommended controls
+              for compounding.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-4 sm:px-6">
+            <Accordion type="single" collapsible className="space-y-2">
+              <CompoundInfoSection 
+                compoundName={assessment.compoundName}
+                din={assessment.din}
+                onValueChange={handleChange}
+              />
+              
+              <CompoundingTypeSection 
+                compoundingType={assessment.compoundingType}
+                compoundingTypeOptions={compoundingTypeOptions}
+                onValueChange={handleChange}
+              />
+              
+              <RiskLevelAssignmentSection 
+                assignedRiskLevel={assessment.assignedRiskLevel}
+                riskLevelOptions={riskLevelOptions}
+                onValueChange={handleChange}
+              />
+              
+              <RecommendedControlsSection 
+                ppeOptions={ppeOptions}
+                engineeringControlOptions={engineeringControlOptions}
+                selectedPPE={assessment.recommendedControls.ppe}
+                selectedEngineeringControls={assessment.recommendedControls.engineeringControls}
+                otherControls={assessment.recommendedControls.otherControls}
+                onCheckboxListChange={handleCheckboxListChange}
+                onValueChange={handleChange}
+              />
+            </Accordion>
             
-            <CompoundingTypeSection 
-              compoundingType={assessment.compoundingType}
-              compoundingTypeOptions={compoundingTypeOptions}
-              onValueChange={handleChange}
-            />
-            
-            <RiskLevelAssignmentSection 
-              assignedRiskLevel={assessment.assignedRiskLevel}
-              riskLevelOptions={riskLevelOptions}
-              onValueChange={handleChange}
-            />
-            
-            <RecommendedControlsSection 
-              ppeOptions={ppeOptions}
-              engineeringControlOptions={engineeringControlOptions}
-              selectedPPE={assessment.recommendedControls.ppe}
-              selectedEngineeringControls={assessment.recommendedControls.engineeringControls}
-              otherControls={assessment.recommendedControls.otherControls}
-              onCheckboxListChange={handleCheckboxListChange}
-              onValueChange={handleChange}
-            />
-          </Accordion>
-          
-          <GuidelinesInfo />
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <Button variant="outline" type="button" onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button type="submit" disabled={!assessment.assignedRiskLevel}>
-            <Check className="mr-2 h-4 w-4" />
-            Complete Assessment
-          </Button>
-        </CardFooter>
-      </Card>
-    </form>
+            <div className="mt-6">
+              <GuidelinesInfo />
+            </div>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-0 sm:justify-between px-4 sm:px-6 pt-4 sm:pt-6">
+            <Button 
+              variant="outline" 
+              type="button" 
+              onClick={onCancel}
+              className="w-full sm:w-auto order-2 sm:order-1"
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={!assessment.assignedRiskLevel}
+              className="w-full sm:w-auto order-1 sm:order-2"
+            >
+              <Check className="mr-2 h-4 w-4" />
+              Complete Assessment
+            </Button>
+          </CardFooter>
+        </Card>
+      </form>
+    </MobileFormWrapper>
   );
 };
 
