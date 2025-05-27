@@ -87,7 +87,7 @@ class SecureApiClient {
         }
         
         // Don't retry on certain errors
-        if (error.name === 'AbortError' || response?.status === 401) {
+        if (error.name === 'AbortError' || error.message?.includes('HTTP 401')) {
           break;
         }
         
