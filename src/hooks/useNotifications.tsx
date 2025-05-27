@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { toast } from 'sonner';
 
@@ -82,8 +81,7 @@ export const useNotifications = () => {
 
   const showInvalidInput = (field: string, requirement: string) => {
     showWarning(
-      `Invalid ${field}`,
-      `Please enter a valid ${field}. ${requirement}`,
+      `Invalid ${field}. Please enter a valid ${field}. ${requirement}`,
       { duration: 6000 }
     );
   };
