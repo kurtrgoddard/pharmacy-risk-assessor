@@ -154,7 +154,7 @@ export const demoCompounds: DemoCompound[] = [
           manufacturer: "Various",
           nioshStatus: {
             isOnNioshList: true,
-            hazardLevel: "Hazardous",
+            hazardLevel: "High Hazard",
             hazardType: ["Carcinogenic", "Reproductive toxicity", "Developmental toxicity"]
           },
           reproductiveToxicity: true,
