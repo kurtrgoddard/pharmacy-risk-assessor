@@ -7,6 +7,8 @@ import Dashboard from './pages/Dashboard';
 import Index from './pages/Index';
 import SharedAssessment from './pages/SharedAssessment';
 import TestMode from './pages/TestMode';
+import LandingPage from './pages/LandingPage';
+import AdminWaitlist from './pages/AdminWaitlist';
 import CookieNotice from './components/CookieNotice';
 import { SkipLinks, KeyboardShortcuts } from './components/KeyboardNavigation';
 import { config } from './config/environment';
@@ -45,12 +47,14 @@ function App() {
       <KeyboardShortcuts />
       <main id="main-content" className="min-h-screen">
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/napra-assessment" element={<NAPRARiskAssessment />} />
-          <Route path="/secure-napra-assessment" element={<SecureNAPRARiskAssessmentPage />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/shared-assessment/:shareId" element={<SharedAssessment />} />
-          <Route path="/test" element={<TestMode />} />
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/app" element={<Index />} />
+          <Route path="/app/napra-assessment" element={<NAPRARiskAssessment />} />
+          <Route path="/app/secure-napra-assessment" element={<SecureNAPRARiskAssessmentPage />} />
+          <Route path="/app/dashboard" element={<Dashboard />} />
+          <Route path="/app/shared-assessment/:shareId" element={<SharedAssessment />} />
+          <Route path="/app/test" element={<TestMode />} />
+          <Route path="/admin/waitlist" element={<AdminWaitlist />} />
           {/* Health check route - only available in non-production */}
           {!config.environment === false && (
             <Route path="/api/health" element={<HealthCheckEndpoint />} />
