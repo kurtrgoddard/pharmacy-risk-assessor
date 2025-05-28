@@ -124,7 +124,7 @@ const LaunchAnnouncementTemplate: React.FC<LaunchAnnouncementTemplateProps> = ({
         </p>
 
         <p style={{ color: '#374151', lineHeight: '1.6', marginTop: '25px', textAlign: 'center' }}>
-          Questions? Reply to this email or contact our support team.<br>
+          Questions? Reply to this email or contact our support team.<br />
           <strong>The PharmAssess Team</strong>
         </p>
       </div>

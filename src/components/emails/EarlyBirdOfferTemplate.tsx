@@ -159,7 +159,7 @@ const EarlyBirdOfferTemplate: React.FC<EarlyBirdOfferTemplateProps> = ({
         </p>
 
         <p style={{ color: '#374151', lineHeight: '1.6', marginTop: '25px' }}>
-          Best regards,<br>
+          Best regards,<br />
           <strong>The PharmAssess Team</strong>
         </p>
       </div>
