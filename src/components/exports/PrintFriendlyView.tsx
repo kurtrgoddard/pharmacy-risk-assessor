@@ -1,15 +1,22 @@
 
 import React from 'react';
 import { RiskAssessmentData } from '@/lib/validators/risk-assessment';
+import { KeswickAssessmentData } from '@/components/KeswickRiskAssessment';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
 interface PrintFriendlyViewProps {
-  assessment: RiskAssessmentData;
+  assessment: RiskAssessmentData | KeswickAssessmentData;
+  qrCodeUrl?: string;
 }
 
-const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment }) => {
+// Type guard to check if assessment is KeswickAssessmentData
+const isKeswickAssessment = (assessment: any): assessment is KeswickAssessmentData => {
+  return 'compoundName' in assessment && 'activeIngredients' in assessment;
+};
+
+const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment, qrCodeUrl }) => {
   return (
     <div className="print-friendly-view max-w-4xl mx-auto p-8 bg-white">
       <style>
@@ -37,36 +44,66 @@ const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment }) => 
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <strong>Compound Name:</strong> {assessment.compoundName}
-            </div>
-            <div>
-              <strong>Batch Size:</strong> {assessment.batchSize}
-            </div>
-            <div>
-              <strong>Dosage Form:</strong> {assessment.dosageForm}
-            </div>
-            <div>
-              <strong>Storage:</strong> {assessment.storageConditions}
-            </div>
+            {isKeswickAssessment(assessment) ? (
+              <>
+                <div>
+                  <strong>Compound Name:</strong> {assessment.compoundName}
+                </div>
+                <div>
+                  <strong>DIN:</strong> {assessment.din || 'N/A'}
+                </div>
+                <div>
+                  <strong>Risk Level:</strong> {assessment.riskLevel}
+                </div>
+                <div>
+                  <strong>Preparation Frequency:</strong> {assessment.preparationDetails.frequency}
+                </div>
+              </>
+            ) : (
+              <>
+                <div>
+                  <strong>Pharmacy Name:</strong> {assessment.pharmacyName || 'N/A'}
+                </div>
+                <div>
+                  <strong>Preparation Name:</strong> {assessment.preparationName || 'N/A'}
+                </div>
+                <div>
+                  <strong>Assessor:</strong> {assessment.assessorName || 'N/A'}
+                </div>
+                <div>
+                  <strong>Storage:</strong> {assessment.storageConditions || 'N/A'}
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {assessment.ingredients && assessment.ingredients.length > 0 && (
+      {isKeswickAssessment(assessment) && assessment.activeIngredients && assessment.activeIngredients.length > 0 && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Active Ingredients</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {assessment.ingredients.map((ingredient, index) => (
+              {assessment.activeIngredients.map((ingredient, index) => (
                 <div key={index} className="flex justify-between items-center">
                   <span>{ingredient.name}</span>
-                  <span className="font-medium">{ingredient.concentration}</span>
+                  <span className="font-medium">{ingredient.manufacturer || 'N/A'}</span>
                 </div>
               ))}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isKeswickAssessment(assessment) && assessment.ingredients && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Ingredients</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>{assessment.ingredients}</p>
           </CardContent>
         </Card>
       )}
@@ -80,8 +117,8 @@ const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment }) => 
             <div className="flex items-center gap-2 mb-2">
               <strong>Overall Risk Level:</strong>
               <Badge variant={
-                assessment.riskLevel === 'high' ? 'destructive' : 
-                assessment.riskLevel === 'medium' ? 'default' : 
+                assessment.riskLevel === 'high' || assessment.riskLevel === 'Level C' ? 'destructive' : 
+                assessment.riskLevel === 'medium' || assessment.riskLevel === 'Level B' ? 'default' : 
                 'secondary'
               }>
                 {assessment.riskLevel?.toUpperCase()}
@@ -89,22 +126,23 @@ const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment }) => 
             </div>
           </div>
           
-          {assessment.hazardClassification && (
+          {isKeswickAssessment(assessment) && assessment.rationale && (
             <div className="mb-4">
-              <strong>Hazard Classifications:</strong>
-              <div className="mt-2 space-y-1">
-                {assessment.hazardClassification.ghs?.map((hazard, index) => (
-                  <div key={index} className="text-sm bg-yellow-50 p-2 rounded">
-                    {hazard}
-                  </div>
-                ))}
-              </div>
+              <strong>Risk Rationale:</strong>
+              <p className="mt-2 text-sm">{assessment.rationale}</p>
+            </div>
+          )}
+
+          {!isKeswickAssessment(assessment) && assessment.mitigationStrategies && (
+            <div className="mb-4">
+              <strong>Mitigation Strategies:</strong>
+              <p className="mt-2 text-sm">{assessment.mitigationStrategies}</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {assessment.recommendedPPE && (
+      {isKeswickAssessment(assessment) && assessment.ppe && (
         <Card className="mb-6">
           <CardHeader>
             <CardTitle>Personal Protective Equipment</CardTitle>
@@ -112,16 +150,34 @@ const PrintFriendlyView: React.FC<PrintFriendlyViewProps> = ({ assessment }) => 
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <strong>Gloves:</strong> {assessment.recommendedPPE.gloves}
+                <strong>Gloves:</strong> {assessment.ppe.gloves}
               </div>
               <div>
-                <strong>Eye Protection:</strong> {assessment.recommendedPPE.eyeProtection}
+                <strong>Gown:</strong> {assessment.ppe.gown}
               </div>
               <div>
-                <strong>Respiratory:</strong> {assessment.recommendedPPE.respiratoryProtection}
+                <strong>Mask:</strong> {assessment.ppe.mask}
               </div>
               <div>
-                <strong>Body Protection:</strong> {assessment.recommendedPPE.bodyProtection}
+                <strong>Eye Protection:</strong> {assessment.ppe.eyeProtection ? 'Required' : 'Not Required'}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {qrCodeUrl && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Digital Access</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <img src={qrCodeUrl} alt="QR Code for digital access" className="w-24 h-24" />
+              <div>
+                <p className="text-sm text-gray-600">
+                  Scan this QR code to access the digital version of this assessment
+                </p>
               </div>
             </div>
           </CardContent>

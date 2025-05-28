@@ -20,6 +20,19 @@ export const riskAssessmentSchema = z.object({
   mitigationStrategies: z.string().min(1, "Mitigation strategies are required"),
   residualRisk: z.string().min(1, "Residual risk assessment is required"),
   references: z.string().optional(),
+  // Additional fields for compatibility
+  compoundName: z.string().optional(),
+  batchSize: z.string().optional(),
+  dosageForm: z.string().optional(),
+  hazardClassification: z.object({
+    ghs: z.array(z.string()).optional()
+  }).optional(),
+  recommendedPPE: z.object({
+    gloves: z.string().optional(),
+    eyeProtection: z.string().optional(),
+    respiratoryProtection: z.string().optional(),
+    bodyProtection: z.string().optional()
+  }).optional()
 });
 
 export type RiskAssessmentData = z.infer<typeof riskAssessmentSchema>;

@@ -184,7 +184,14 @@ const TestMode = () => {
     
     return {
       operations: operationStats,
-      cache: cacheStats
+      cache: {
+        ...cacheStats,
+        byType: {
+          assessment: cacheStats.totalItems,
+          compound: 0,
+          other: 0
+        }
+      }
     };
   };
 
@@ -352,7 +359,7 @@ const TestMode = () => {
                     {Object.entries(stats.cache.byType).map(([type, count]) => (
                       <div key={type} className="flex justify-between">
                         <span className="capitalize">{type}:</span>
-                        <span className="font-medium">{count} items</span>
+                        <span className="font-medium">{String(count)} items</span>
                       </div>
                     ))}
                   </div>
