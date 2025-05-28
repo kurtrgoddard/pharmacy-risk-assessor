@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import NAPRARiskAssessment from './pages/NAPRARiskAssessment';
 import SecureNAPRARiskAssessmentPage from './pages/SecureNAPRARiskAssessment';
@@ -7,20 +7,78 @@ import Dashboard from './pages/Dashboard';
 import Index from './pages/Index';
 import SharedAssessment from './pages/SharedAssessment';
 import TestMode from './pages/TestMode';
+import CookieNotice from './components/CookieNotice';
+import { SkipLinks, KeyboardShortcuts } from './components/KeyboardNavigation';
+import { config } from './config/environment';
+import { logger } from './utils/logger';
 
 function App() {
+  useEffect(() => {
+    // Log application start
+    logger.info('Application started', {
+      environment: config.environment,
+      timestamp: new Date().toISOString(),
+      userAgent: navigator.userAgent
+    }, 'App');
+
+    // Set up error boundary for unhandled errors
+    const handleError = (event: ErrorEvent) => {
+      logger.error('Unhandled error', event.error, 'App');
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      logger.error('Unhandled promise rejection', event.reason, 'App');
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/napra-assessment" element={<NAPRARiskAssessment />} />
-        <Route path="/secure-napra-assessment" element={<SecureNAPRARiskAssessmentPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/shared-assessment/:shareId" element={<SharedAssessment />} />
-        <Route path="/test" element={<TestMode />} />
-      </Routes>
+      <SkipLinks />
+      <KeyboardShortcuts />
+      <main id="main-content" className="min-h-screen">
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/napra-assessment" element={<NAPRARiskAssessment />} />
+          <Route path="/secure-napra-assessment" element={<SecureNAPRARiskAssessmentPage />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/shared-assessment/:shareId" element={<SharedAssessment />} />
+          <Route path="/test" element={<TestMode />} />
+          {/* Health check route - only available in non-production */}
+          {!config.environment === false && (
+            <Route path="/api/health" element={<HealthCheckEndpoint />} />
+          )}
+        </Routes>
+      </main>
+      <CookieNotice />
     </Router>
   );
 }
+
+// Simple health check component for the route
+const HealthCheckEndpoint: React.FC = () => {
+  const healthData = {
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    environment: config.environment,
+    version: '1.0.0'
+  };
+
+  return (
+    <div className="p-8">
+      <h1>Health Check</h1>
+      <pre className="bg-gray-100 p-4 rounded">
+        {JSON.stringify(healthData, null, 2)}
+      </pre>
+    </div>
+  );
+};
 
 export default App;
