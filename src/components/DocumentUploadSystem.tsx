@@ -42,6 +42,8 @@ const DocumentUploadSystem = ({ onDocumentProcessed }: DocumentUploadSystemProps
   }, []);
 
   const processFile = async (file: File) => {
+    console.log("Processing file:", file.name, file.type, file.size);
+    
     // Validate file
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (!allowedTypes.includes(file.type)) {
@@ -100,8 +102,19 @@ const DocumentUploadSystem = ({ onDocumentProcessed }: DocumentUploadSystemProps
   };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log("File input changed:", e.target.files);
     if (e.target.files && e.target.files[0]) {
       await processFile(e.target.files[0]);
+    }
+    // Reset the input value so the same file can be selected again
+    e.target.value = '';
+  };
+
+  const handleButtonClick = () => {
+    console.log("Select file button clicked");
+    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.click();
     }
   };
 
@@ -148,19 +161,22 @@ const DocumentUploadSystem = ({ onDocumentProcessed }: DocumentUploadSystemProps
               
               <input
                 type="file"
-                multiple={false}
                 accept=".pdf,.jpg,.jpeg,.png"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-upload"
                 disabled={isProcessing}
               />
-              <label htmlFor="file-upload">
-                <Button type="button" className="cursor-pointer" disabled={isProcessing}>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Select File
-                </Button>
-              </label>
+              
+              <Button 
+                type="button" 
+                onClick={handleButtonClick}
+                disabled={isProcessing}
+                className="cursor-pointer"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Select File
+              </Button>
             </div>
           )}
         </div>
