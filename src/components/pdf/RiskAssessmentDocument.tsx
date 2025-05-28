@@ -62,9 +62,15 @@ Font.register({
 
 interface RiskAssessmentDocumentProps {
   assessmentData: KeswickAssessmentData;
+  pharmacyInfo?: {
+    pharmacyName: string;
+    licenseNumber: string;
+    pharmacistName: string;
+    address: string;
+  };
 }
 
-const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessmentData }) => {
+const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessmentData, pharmacyInfo }) => {
   const currentDate = new Date().toLocaleDateString();
   
   const getRiskLevelStyle = (riskLevel: string) => {
@@ -88,7 +94,8 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         
         {/* Header with Pharmacy information */}
         <HeaderSection 
-          pharmacyName="Keswick Pharmacy" 
+          pharmacyName={pharmacyInfo?.pharmacyName || "Pharmacy"} 
+          address={pharmacyInfo?.address || ""}
           currentDate={currentDate} 
           din={assessmentData.din || ''} 
         />
@@ -112,7 +119,7 @@ const RiskAssessmentDocument: React.FC<RiskAssessmentDocumentProps> = ({ assessm
         <PPESection assessmentData={assessmentData} />
 
         {/* Signature Section */}
-        <SignatureSection pharmacyName="Keswick Pharmacy" />
+        <SignatureSection pharmacyName={pharmacyInfo?.pharmacyName || "Pharmacy"} pharmacistName={pharmacyInfo?.pharmacistName} />
       </Page>
     </Document>
   );

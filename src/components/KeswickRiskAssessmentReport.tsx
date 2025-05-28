@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Printer, RotateCcw, Shield, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { KeswickAssessmentData } from './KeswickRiskAssessment';
-import { PDFDataProvider } from './pdf/PDFViewerWrapper';
+import { BlobProvider } from '@react-pdf/renderer';
+import RiskAssessmentDocument from './pdf/RiskAssessmentDocument';
 
 interface KeswickRiskAssessmentReportProps {
   assessmentData: KeswickAssessmentData;
@@ -73,28 +74,54 @@ const KeswickRiskAssessmentReport = ({
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <PDFDataProvider assessmentData={assessmentData}>
-            {(pdfUrl) => (
-              <Button 
-                onClick={() => {
-                  if (pdfUrl) {
-                    const link = document.createElement('a');
-                    link.href = pdfUrl;
-                    link.download = `NAPRA-Risk-Assessment-${assessmentData.compoundName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    toast.success("PDF report downloaded successfully");
-                  } else {
-                    toast.error("PDF generation failed");
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                Download PDF
-              </Button>
-            )}
-          </PDFDataProvider>
+          <BlobProvider document={<RiskAssessmentDocument assessmentData={assessmentData} pharmacyInfo={pharmacyInfo} />}>
+            {({ blob, url, loading, error }) => {
+              console.log("PDF Generation Status:", { blob: !!blob, url: !!url, loading, error });
+              
+              if (loading) {
+                return (
+                  <Button disabled>
+                    <Download className="h-4 w-4 mr-2" />
+                    Generating PDF...
+                  </Button>
+                );
+              }
+              
+              if (error) {
+                console.error("PDF Generation Error:", error);
+                return (
+                  <Button 
+                    onClick={() => toast.error(`PDF generation failed: ${error.message}`)}
+                    variant="destructive"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    PDF Error
+                  </Button>
+                );
+              }
+              
+              return (
+                <Button 
+                  onClick={() => {
+                    if (url) {
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.download = `NAPRA-Risk-Assessment-${assessmentData.compoundName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                      toast.success("PDF report downloaded successfully");
+                    } else {
+                      toast.error("PDF URL not available");
+                    }
+                  }}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </Button>
+              );
+            }}
+          </BlobProvider>
         </div>
       </div>
 

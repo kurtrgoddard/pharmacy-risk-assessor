@@ -4,6 +4,7 @@ import { Text, View, StyleSheet } from '@react-pdf/renderer';
 
 interface HeaderSectionProps {
   pharmacyName: string;
+  address: string;
   currentDate: string;
   din: string;
 }
@@ -28,13 +29,13 @@ const styles = StyleSheet.create({
   },
 });
 
-const HeaderSection: React.FC<HeaderSectionProps> = ({ pharmacyName, currentDate, din }) => {
+const HeaderSection: React.FC<HeaderSectionProps> = ({ pharmacyName, address, currentDate, din }) => {
   return (
     <View style={styles.header}>
       <View>
         <Text style={styles.pharmacy}>{pharmacyName}</Text>
         <Text style={styles.headerText}>Professional Compounding Services</Text>
-        <Text style={styles.headerText}>123 Main Street, Keswick, ON L4P 3C8</Text>
+        <Text style={styles.headerText}>{address || "123 Main Street, Keswick, ON L4P 3C8"}</Text>
         <Text style={styles.headerText}>Tel: (905) 555-1234 • Fax: (905) 555-5678</Text>
       </View>
       <View>

@@ -30,9 +30,10 @@ const styles = StyleSheet.create({
 
 interface SignatureSectionProps {
   pharmacyName: string;
+  pharmacistName?: string;
 }
 
-const SignatureSection: React.FC<SignatureSectionProps> = ({ pharmacyName }) => {
+const SignatureSection: React.FC<SignatureSectionProps> = ({ pharmacyName, pharmacistName }) => {
   return (
     <>
       <View style={styles.signatureSection}>
@@ -42,6 +43,9 @@ const SignatureSection: React.FC<SignatureSectionProps> = ({ pharmacyName }) => 
         </View>
         <View style={styles.signatureBox}>
           <Text style={styles.signatureText}>Verified by (Pharmacist):</Text>
+          {pharmacistName && (
+            <Text style={[styles.signatureText, { marginTop: 5 }]}>{pharmacistName}</Text>
+          )}
           <Text style={[styles.signatureText, { marginTop: 15 }]}>Date:</Text>
         </View>
       </View>
