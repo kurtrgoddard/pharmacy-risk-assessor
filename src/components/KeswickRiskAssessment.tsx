@@ -1,11 +1,13 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ShieldAlert, ShieldCheck, Info, Download, Eye } from "lucide-react";
+import { ArrowLeft, ShieldAlert, ShieldCheck, Info, Download, Eye, Printer } from "lucide-react";
 import PDFViewerWrapper, { PDFDataProvider } from "./pdf/PDFViewerWrapper";
 import { PDFViewer } from "@/components";
 import { Badge } from "@/components/ui/badge";
 import { SDSData } from "@/utils/mediscaAPI";
+import EnhancedExportButton from './exports/EnhancedExportButton';
+import PrintFriendlyView from './exports/PrintFriendlyView';
+import { ExportService } from '@/services/exportService';
 
 export interface ActiveIngredient {
   name: string;
@@ -80,6 +82,8 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
   fileName,
   onStartOver,
 }) => {
+  const [showPrintView, setShowPrintView] = useState(false);
+
   const getRiskLevelIcon = (riskLevel: string) => {
     switch (riskLevel) {
       case "Level A":
@@ -106,6 +110,25 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
     }
   };
 
+  if (showPrintView) {
+    const shareUrl = ExportService.createShareableLink(assessmentData, 24);
+    const qrCodeUrl = ExportService.generateQRCodeData(shareUrl);
+    
+    return (
+      <div>
+        <div className="no-print mb-4 text-center">
+          <Button onClick={() => setShowPrintView(false)} variant="outline">
+            Back to Assessment View
+          </Button>
+        </div>
+        <PrintFriendlyView 
+          assessment={assessmentData} 
+          qrCodeUrl={qrCodeUrl}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto px-4 assessment-appear">
       <div className="mb-8 text-center">
@@ -124,6 +147,29 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
       </div>
       
       <div className="glass-card rounded-xl overflow-hidden p-6 mb-8">
+        <div className="mb-6 flex justify-between items-start">
+          <h3 className="text-xl font-semibold text-pharmacy-darkBlue">Risk Assessment Summary</h3>
+          <div className="flex gap-2">
+            <Button 
+              onClick={() => setShowPrintView(true)}
+              variant="outline"
+              size="sm"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Print View
+            </Button>
+            <PDFDataProvider assessmentData={assessmentData}>
+              {(pdfData) => (
+                <EnhancedExportButton 
+                  assessment={assessmentData}
+                  pdfUrl={pdfData}
+                  fileName={fileName}
+                />
+              )}
+            </PDFDataProvider>
+          </div>
+        </div>
+        
         <div className="mb-6">
           <h3 className="text-xl font-semibold text-pharmacy-darkBlue mb-4">Risk Assessment Summary</h3>
           
@@ -187,7 +233,7 @@ const KeswickRiskAssessment: React.FC<KeswickRiskAssessmentProps> = ({
           <h3 className="text-lg font-medium text-pharmacy-darkBlue mb-3">NAPRA Compliant Document</h3>
           <p className="text-sm text-pharmacy-gray mb-4">
             The document below follows the NAPRA standard template for compounding risk assessments.
-            Download or print this document for your records.
+            Use the export options above to download, share, or print this document.
           </p>
         </div>
         
