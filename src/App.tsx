@@ -9,6 +9,7 @@ import OfflineNotification from '@/components/ui/OfflineNotification';
 import Index from './pages/Index';
 import NotFound from './pages/NotFound';
 import NAPRARiskAssessment from './pages/NAPRARiskAssessment';
+import SecureNAPRARiskAssessment from './pages/SecureNAPRARiskAssessment';
 import Dashboard from './pages/Dashboard';
 import './App.css';
 
@@ -31,6 +32,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/napra-assessment" element={<NAPRARiskAssessment />} />
+          <Route path="/secure-napra-assessment" element={<SecureNAPRARiskAssessment />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

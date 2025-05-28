@@ -5,6 +5,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
 import { Form } from "@/components/ui/form";
 import MobileFormWrapper from '@/components/ui/MobileFormWrapper';
 import { riskAssessmentSchema } from '@/lib/validators/risk-assessment';
@@ -77,6 +79,14 @@ const NAPRARiskAssessment = () => {
       
       <main className="flex-grow">
         <MobileFormWrapper className="py-8">
+          <div className="mb-6 flex items-center">
+            <Button variant="outline" onClick={() => navigate('/')} className="mr-4">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Home
+            </Button>
+            <h1 className="text-2xl font-semibold text-gray-900">NAPRA Risk Assessment</h1>
+          </div>
+
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
               <AssessmentFormHeader control={form.control} />

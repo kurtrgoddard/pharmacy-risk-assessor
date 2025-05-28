@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -5,13 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from '@/components/ui/use-toast';
-import { Sparkles } from "lucide-react";
+import { Sparkles, Shield, PlayCircle } from "lucide-react";
 import AppHeader from '@/components/ui/AppHeader';
 import AppFooter from '@/components/ui/AppFooter';
+import DemoMode from '@/components/DemoMode';
 
 const Index = () => {
   const navigate = useNavigate();
   const [apiKey, setApiKey] = useState('');
+  const [showDemo, setShowDemo] = useState(false);
   const { toast } = useToast();
 
   const handleApiKeySubmit = () => {
@@ -46,6 +49,22 @@ const Index = () => {
 
     navigate('/napra-assessment');
   };
+
+  const handleSecureAssessment = () => {
+    navigate('/secure-napra-assessment');
+  };
+
+  const handleShowDemo = () => {
+    setShowDemo(true);
+  };
+
+  const handleExitDemo = () => {
+    setShowDemo(false);
+  };
+
+  if (showDemo) {
+    return <DemoMode onExitDemo={handleExitDemo} />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-indigo-50">
@@ -97,6 +116,24 @@ const Index = () => {
             </Card>
           </div>
 
+          {/* Demo Section */}
+          <div className="text-center mb-8">
+            <Card className="glass-card max-w-md mx-auto">
+              <CardHeader>
+                <CardTitle>Try Demo Examples</CardTitle>
+                <CardDescription>
+                  Explore pre-filled assessment examples to understand the process.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Button className="w-full" onClick={handleShowDemo} variant="outline">
+                  <PlayCircle className="mr-2 h-5 w-5" />
+                  View Demo Assessments
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
           {/* API Key Input Section */}
           <div className="max-w-md mx-auto mb-8">
             <Card className="glass-card">
@@ -124,12 +161,21 @@ const Index = () => {
             </Card>
           </div>
 
-          {/* Demo & Call to Action Section */}
-          <div className="text-center">
-            <Button size="lg" className="bg-pharmacy-blue text-white hover:bg-pharmacy-darkBlue" onClick={handleStartAssessment}>
-              <Sparkles className="mr-2 h-5 w-5" />
-              Start Assessment
-            </Button>
+          {/* Assessment Options */}
+          <div className="text-center space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl mx-auto">
+              <Button size="lg" className="bg-pharmacy-blue text-white hover:bg-pharmacy-darkBlue" onClick={handleStartAssessment}>
+                <Sparkles className="mr-2 h-5 w-5" />
+                Standard Assessment
+              </Button>
+              <Button size="lg" variant="outline" onClick={handleSecureAssessment}>
+                <Shield className="mr-2 h-5 w-5" />
+                Secure Assessment
+              </Button>
+            </div>
+            <p className="text-sm text-gray-600 max-w-2xl mx-auto">
+              Choose Standard Assessment for full API integration or Secure Assessment for enhanced data protection.
+            </p>
           </div>
         </div>
       </main>
