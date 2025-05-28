@@ -9,6 +9,7 @@ import SharedAssessment from './pages/SharedAssessment';
 import TestMode from './pages/TestMode';
 import LandingPage from './pages/LandingPage';
 import AdminWaitlist from './pages/AdminWaitlist';
+import AdminEmails from './pages/AdminEmails';
 import CookieNotice from './components/CookieNotice';
 import { SkipLinks, KeyboardShortcuts } from './components/KeyboardNavigation';
 import { config } from './config/environment';
@@ -56,6 +57,7 @@ function App() {
           <Route path="/app/test" element={<TestMode />} />
           <Route path="/test" element={<Navigate to="/app/test" replace />} />
           <Route path="/admin/waitlist" element={<AdminWaitlist />} />
+          <Route path="/admin/emails" element={<AdminEmails />} />
           {/* Health check route - only available in non-production */}
           {!config.environment === false && (
             <Route path="/api/health" element={<HealthCheckEndpoint />} />
