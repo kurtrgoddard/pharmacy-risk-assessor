@@ -236,7 +236,7 @@ const Demo = () => {
                   <div className="text-sm">NAPRA Compliant</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">< 2min</div>
+                  <div className="text-2xl font-bold text-green-600">&lt; 2min</div>
                   <div className="text-sm">Assessment Time</div>
                 </div>
                 <div className="text-center">
