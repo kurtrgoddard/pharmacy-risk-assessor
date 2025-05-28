@@ -227,8 +227,8 @@ const NAPRARiskAssessment = () => {
         {/* Progress Indicator */}
         <div className="mb-6 flex items-center justify-center">
           <div className="flex items-center space-x-4">
-            <div className={`flex items-center space-x-2 ${currentStep === 'upload' ? 'text-pharmacy-blue' : currentStep !== 'upload' ? 'text-green-600' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'upload' ? 'bg-pharmacy-blue text-white' : currentStep !== 'upload' ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>
+            <div className={`flex items-center space-x-2 ${currentStep === 'upload' ? 'text-pharmacy-blue' : (currentStep === 'review' || currentStep === 'report') ? 'text-green-600' : 'text-gray-400'}`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${currentStep === 'upload' ? 'bg-pharmacy-blue text-white' : (currentStep === 'review' || currentStep === 'report') ? 'bg-green-600 text-white' : 'bg-gray-200'}`}>
                 1
               </div>
               <span className="font-medium">Upload Formula</span>
