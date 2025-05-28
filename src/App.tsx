@@ -7,8 +7,8 @@ import Index from "./pages/Index";
 import Demo from "./pages/Demo";
 import NAPRARiskAssessment from "./pages/NAPRARiskAssessment";
 import SecureNAPRARiskAssessmentPage from "./pages/SecureNAPRARiskAssessment";
-import WaitlistAdminPage from "./pages/WaitlistAdmin";
-import EmailPreviewPage from "./pages/EmailPreview";
+import WaitlistAdminPage from "./pages/AdminWaitlist";
+import EmailPreviewPage from "./pages/AdminEmails";
 
 const queryClient = new QueryClient();
 
