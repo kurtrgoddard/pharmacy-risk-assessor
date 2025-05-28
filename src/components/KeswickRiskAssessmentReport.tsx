@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Printer, RotateCcw, Shield, AlertTriangle, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { KeswickAssessmentData } from './KeswickRiskAssessment';
+import { PDFDataProvider } from './pdf/PDFViewerWrapper';
 
 interface KeswickRiskAssessmentReportProps {
   assessmentData: KeswickAssessmentData;
@@ -26,10 +27,6 @@ const KeswickRiskAssessmentReport = ({
   selectedProvince 
 }: KeswickRiskAssessmentReportProps) => {
   
-  const handleDownloadPDF = () => {
-    toast.success("PDF report downloaded successfully");
-  };
-
   const handlePrint = () => {
     window.print();
   };
@@ -76,10 +73,28 @@ const KeswickRiskAssessmentReport = ({
             <Printer className="h-4 w-4 mr-2" />
             Print
           </Button>
-          <Button onClick={handleDownloadPDF}>
-            <Download className="h-4 w-4 mr-2" />
-            Download PDF
-          </Button>
+          <PDFDataProvider assessmentData={assessmentData}>
+            {(pdfUrl) => (
+              <Button 
+                onClick={() => {
+                  if (pdfUrl) {
+                    const link = document.createElement('a');
+                    link.href = pdfUrl;
+                    link.download = `NAPRA-Risk-Assessment-${assessmentData.compoundName.replace(/[^a-zA-Z0-9]/g, '-')}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    toast.success("PDF report downloaded successfully");
+                  } else {
+                    toast.error("PDF generation failed");
+                  }
+                }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            )}
+          </PDFDataProvider>
         </div>
       </div>
 
