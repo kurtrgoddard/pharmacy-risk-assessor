@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import NAPRARiskAssessment from './pages/NAPRARiskAssessment';
 import SecureNAPRARiskAssessmentPage from './pages/SecureNAPRARiskAssessment';
 import Dashboard from './pages/Dashboard';
@@ -54,6 +54,7 @@ function App() {
           <Route path="/app/dashboard" element={<Dashboard />} />
           <Route path="/app/shared-assessment/:shareId" element={<SharedAssessment />} />
           <Route path="/app/test" element={<TestMode />} />
+          <Route path="/test" element={<Navigate to="/app/test" replace />} />
           <Route path="/admin/waitlist" element={<AdminWaitlist />} />
           {/* Health check route - only available in non-production */}
           {!config.environment === false && (
