@@ -1,146 +1,83 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Pill, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Pill, Twitter, Linkedin, Mail, Phone, MapPin, Shield } from 'lucide-react';
 
 const LandingFooter: React.FC = () => {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="bg-gray-900 text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <Link to="/" className="flex items-center space-x-2">
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-lg">
-                <Pill className="h-5 w-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">PharmAssess</span>
+    <footer className="bg-gray-50 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="md:flex md:justify-between">
+          <div className="mb-8 md:mb-0">
+            <Link to="/" className="flex items-center text-blue-600 hover:text-blue-800">
+              <Pill className="h-6 w-6 mr-2" />
+              <span className="font-bold text-xl">PharmAssess</span>
             </Link>
-            <p className="text-gray-400 text-sm leading-relaxed">
-              Revolutionizing pharmaceutical risk assessment for Canadian pharmacists. 
-              NAPRA-compliant reports in under 2 minutes.
+            <p className="mt-2 text-gray-500 text-sm">
+              Instant NAPRA-Compliant Compound Risk Assessment
             </p>
-            <div className="flex items-center space-x-1 text-sm text-gray-400">
-              <span>Made with</span>
-              <span className="text-red-500">❤️</span>
-              <span>in New Brunswick, Canada</span>
-            </div>
           </div>
-
-          {/* Quick Links */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Quick Links</h3>
-            <div className="space-y-2">
-              <button 
-                onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
-                className="block text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Features
-              </button>
-              <button 
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
-                className="block text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                How it Works
-              </button>
-              <button 
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
-                className="block text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Pricing
-              </button>
-              <Link 
-                to="/app" 
-                className="block text-gray-400 hover:text-white transition-colors text-sm"
-              >
-                Try Demo
-              </Link>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-3">Company</h4>
+              <ul className="text-gray-500 text-sm space-y-2">
+                <li>
+                  <Link to="/about" className="hover:text-blue-600">About Us</Link>
+                </li>
+                <li>
+                  <Link to="/careers" className="hover:text-blue-600">Careers</Link>
+                </li>
+                <li>
+                  <Link to="/blog" className="hover:text-blue-600">Blog</Link>
+                </li>
+              </ul>
             </div>
-          </div>
-
-          {/* Legal */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Legal</h3>
-            <div className="space-y-2">
-              <button className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Privacy Policy
-              </button>
-              <button className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Terms of Service
-              </button>
-              <button className="block text-gray-400 hover:text-white transition-colors text-sm">
-                NAPRA Compliance
-              </button>
-              <button className="block text-gray-400 hover:text-white transition-colors text-sm">
-                Data Protection
-              </button>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-3">Support</h4>
+              <ul className="text-gray-500 text-sm space-y-2">
+                <li>
+                  <Link to="/faq" className="hover:text-blue-600">FAQ</Link>
+                </li>
+                <li>
+                  <Link to="/contact" className="hover:text-blue-600">Contact Us</Link>
+                </li>
+                <li>
+                  <Link to="/terms" className="hover:text-blue-600">Terms of Service</Link>
+                </li>
+                <li>
+                  <Link to="/privacy" className="hover:text-blue-600">Privacy Policy</Link>
+                </li>
+              </ul>
             </div>
-          </div>
-
-          {/* Contact */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Contact</h3>
-            <div className="space-y-3">
-              <div className="flex items-center space-x-3 text-sm text-gray-400">
-                <Mail className="h-4 w-4" />
-                <span>hello@pharmassess.ca</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm text-gray-400">
-                <Phone className="h-4 w-4" />
-                <span>1-800-PHARMASSESS</span>
-              </div>
-              <div className="flex items-center space-x-3 text-sm text-gray-400">
-                <MapPin className="h-4 w-4" />
-                <span>Fredericton, NB, Canada</span>
-              </div>
-            </div>
-            
-            {/* Social Links */}
-            <div className="flex items-center space-x-4 pt-2">
-              <a 
-                href="https://twitter.com/pharmassess" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Twitter className="h-5 w-5" />
-              </a>
-              <a 
-                href="https://linkedin.com/company/pharmassess" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-gray-400 hover:text-white transition-colors"
-              >
-                <Linkedin className="h-5 w-5" />
-              </a>
+            <div>
+              <h4 className="font-semibold text-gray-700 mb-3">Contact</h4>
+              <ul className="text-gray-500 text-sm space-y-2">
+                <li className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  <span>123 Main St, Anytown</span>
+                </li>
+                <li className="flex items-center">
+                  <Mail className="h-4 w-4 mr-2" />
+                  <span>info@pharmassess.com</span>
+                </li>
+                <li className="flex items-center">
+                  <Phone className="h-4 w-4 mr-2" />
+                  <span>(123) 456-7890</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
-
-        {/* Bottom Bar */}
-        <div className="border-t border-gray-800 mt-12 pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-            <p className="text-gray-400 text-sm">
-              © {currentYear} PharmAssess. All rights reserved.
-            </p>
-            
-            {/* Trust Badges */}
-            <div className="flex items-center space-x-6 text-xs text-gray-500">
-              <div className="flex items-center space-x-1">
-                <Shield className="h-3 w-3" />
-                <span>NAPRA Compliant</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <span>🔒</span>
-                <span>Secure</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <span>🇨🇦</span>
-                <span>Canadian</span>
-              </div>
-            </div>
+        <div className="mt-8 border-t border-gray-200 pt-8 md:flex md:items-center md:justify-between">
+          <div className="text-sm text-gray-500">
+            &copy; {new Date().getFullYear()} PharmAssess. All rights reserved.
+          </div>
+          <div className="mt-4 flex space-x-4 md:mt-0">
+            <a href="#" className="text-gray-400 hover:text-blue-600">
+              <Twitter className="h-5 w-5" />
+            </a>
+            <a href="#" className="text-gray-400 hover:text-blue-600">
+              <Linkedin className="h-5 w-5" />
+            </a>
           </div>
         </div>
       </div>
