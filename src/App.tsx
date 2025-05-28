@@ -6,6 +6,7 @@ import SecureNAPRARiskAssessmentPage from './pages/SecureNAPRARiskAssessment';
 import Dashboard from './pages/Dashboard';
 import Index from './pages/Index';
 import SharedAssessment from './pages/SharedAssessment';
+import TestMode from './pages/TestMode';
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/secure-napra-assessment" element={<SecureNAPRARiskAssessmentPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/shared-assessment/:shareId" element={<SharedAssessment />} />
+        <Route path="/test" element={<TestMode />} />
       </Routes>
     </Router>
   );
